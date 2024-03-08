@@ -3,7 +3,7 @@
 
 #include "Components/ALSDebugComponent.h"
 
-
+#include "CollisionShape.h"
 #include "Character/ALSBaseCharacter.h"
 #include "Character/ALSPlayerCameraManager.h"
 #include "Character/Animation/ALSPlayerCameraBehavior.h"

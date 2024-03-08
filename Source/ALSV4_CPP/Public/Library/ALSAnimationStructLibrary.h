@@ -90,22 +90,22 @@ struct FALSAnimCharacterInformation
 	GENERATED_BODY()
 
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "ALS|Character Information")
-	FRotator AimingRotation = FRotator::ZeroRotator;
+	FRotator AimingRotation = FRotator::ZeroRotator;;
 
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "ALS|Character Information")
-	FRotator CharacterActorRotation = FRotator::ZeroRotator;
+	FRotator CharacterActorRotation = FRotator::ZeroRotator;;
 
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "ALS|Character Information")
 	FVector Velocity = FVector::ZeroVector;
 
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "ALS|Character Information")
-	FVector RelativeVelocityDirection = FVector::ZeroVector;
+	FVector RelativeVelocityDirection = FVector::ZeroVector;;
 
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "ALS|Character Information")
-	FVector Acceleration = FVector::ZeroVector;
+	FVector Acceleration = FVector::ZeroVector;;
 
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "ALS|Character Information")
-	FVector MovementInput = FVector::ZeroVector;
+	FVector MovementInput = FVector::ZeroVector;;
 
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "ALS|Character Information")
 	bool bIsMoving = false;

@@ -771,7 +771,11 @@ float UALSCharacterAnimInstance::CalculateDiagonalScaleAmount() const
 	// Calculate the Diagonal Scale Amount. This value is used to scale the Foot IK Root bone to make the Foot IK bones
 	// cover more distance on the diagonal blends. Without scaling, the feet would not move far enough on the diagonal
 	// direction due to the linear translational blending of the IK bones. The curve is used to easily map the value.
-	return DiagonalScaleAmountCurve->GetFloatValue(FMath::Abs(VelocityBlend.F + VelocityBlend.B));
+	if (ensure(IsValid(DiagonalScaleAmountCurve)))
+	{
+		return DiagonalScaleAmountCurve->GetFloatValue(FMath::Abs(VelocityBlend.F + VelocityBlend.B));
+	}
+	return 0.0f;
 }
 
 float UALSCharacterAnimInstance::CalculateCrouchingPlayRate() const
@@ -830,10 +834,9 @@ float UALSCharacterAnimInstance::CalculateLandPrediction() const
 		                                                5.0f);
 	}
 
-	if (Character->GetCharacterMovement()->IsWalkable(HitResult))
+	if (Character->GetCharacterMovement()->IsWalkable(HitResult) && ensure(IsValid(LandPredictionCurve)))
 	{
-		return FMath::Lerp(LandPredictionCurve->GetFloatValue(HitResult.Time), 0.0f,
-		                   GetCurveValue(NAME_Mask_LandPrediction));
+		return FMath::Lerp(LandPredictionCurve->GetFloatValue(HitResult.Time), 0.0f,GetCurveValue(NAME_Mask_LandPrediction));
 	}
 
 	return 0.0f;
@@ -845,12 +848,15 @@ FALSLeanAmount UALSCharacterAnimInstance::CalculateAirLeanAmount() const
 	// The Lean In Air curve gets the Fall Speed and is used as a multiplier to smoothly reverse the leaning direction
 	// when transitioning from moving upwards to moving downwards.
 	FALSLeanAmount CalcLeanAmount;
-	const FVector& UnrotatedVel = CharacterInformation.CharacterActorRotation.UnrotateVector(
-		CharacterInformation.Velocity) / 350.0f;
-	FVector2D InversedVect(UnrotatedVel.Y, UnrotatedVel.X);
-	InversedVect *= LeanInAirCurve->GetFloatValue(InAir.FallSpeed);
-	CalcLeanAmount.LR = InversedVect.X;
-	CalcLeanAmount.FB = InversedVect.Y;
+	if(ensure(LeanInAirCurve))
+	{
+		const FVector& UnrotatedVel = CharacterInformation.CharacterActorRotation.UnrotateVector(
+			CharacterInformation.Velocity) / 350.0f;
+		FVector2D InversedVect(UnrotatedVel.Y, UnrotatedVel.X);
+		InversedVect *= LeanInAirCurve->GetFloatValue(InAir.FallSpeed);
+		CalcLeanAmount.LR = InversedVect.X;
+		CalcLeanAmount.FB = InversedVect.Y;
+	}
 	return CalcLeanAmount;
 }
 

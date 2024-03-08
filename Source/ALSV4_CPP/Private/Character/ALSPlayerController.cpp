@@ -172,7 +172,7 @@ void AALSPlayerController::SprintAction(const FInputActionValue& Value)
 
 void AALSPlayerController::AimAction(const FInputActionValue& Value)
 {
-	if (PossessedCharacter)
+	if(PossessedCharacter)
 	{
 		PossessedCharacter->AimAction(Value.Get<bool>());
 	}

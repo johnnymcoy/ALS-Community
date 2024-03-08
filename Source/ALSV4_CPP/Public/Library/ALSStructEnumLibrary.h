@@ -245,6 +245,9 @@ private:
 	bool Walking_ = true;
 
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = true), Category = "ALS|Movement System")
+	bool Sliding_ = false;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = true), Category = "ALS|Movement System")
 	bool Running_ = false;
 
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = true), Category = "ALS|Movement System")
@@ -260,6 +263,7 @@ public:
 	const bool& Walking() const { return Walking_; }
 	const bool& Running() const { return Running_; }
 	const bool& Sprinting() const { return Sprinting_; }
+	const bool& Sliding() const { return Sliding_; }
 
 	operator EALSGait() const { return Gait; }
 
@@ -269,6 +273,8 @@ public:
 		Walking_ = Gait == EALSGait::Walking;
 		Running_ = Gait == EALSGait::Running;
 		Sprinting_ = Gait == EALSGait::Sprinting;
+		Sliding_ = Gait == EALSGait::Sliding;
+
 	}
 };
 
@@ -306,6 +312,30 @@ private:
 	bool PistolTwoHanded_ = false;
 
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = true), Category = "ALS|Character States")
+	bool Shotgun_ = false;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = true), Category = "ALS|Character States")
+	bool Sniper_ = false;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = true), Category = "ALS|Character States")
+	bool Launcher_ = false;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = true), Category = "ALS|Character States")
+	bool Sword_ = false;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = true), Category = "ALS|Character States")
+	bool Knife_ = false;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = true), Category = "ALS|Character States")
+	bool SwordShield_ = false;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = true), Category = "ALS|Character States")
+	bool Chainsaw_ = false;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = true), Category = "ALS|Character States")
+	bool Melee_ = false;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = true), Category = "ALS|Character States")
 	bool Bow_ = false;
 
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = true), Category = "ALS|Character States")
@@ -335,6 +365,16 @@ public:
 	const bool& Rifle() const { return Rifle_; }
 	const bool& PistolOneHanded() const { return PistolOneHanded_; }
 	const bool& PistolTwoHanded() const { return PistolTwoHanded_; }
+	const bool& Shotgun() const { return Shotgun_; }
+	const bool& Sniper() const { return Sniper_; }
+	const bool& Launcher() const { return Launcher_; }
+	const bool& Sword() const { return Sword_; }
+	const bool& Chainsaw() const { return Chainsaw_; }
+	const bool& Knife() const { return Knife_; }
+	const bool& SwordShield() const { return SwordShield_; }
+
+	const bool& Melee() const { return Melee_; }
+
 	const bool& Bow() const { return Bow_; }
 	const bool& Torch() const { return Torch_; }
 	const bool& Binoculars() const { return Binoculars_; }
@@ -354,6 +394,15 @@ public:
 		Rifle_ = State == EALSOverlayState::Rifle;
 		PistolOneHanded_ = State == EALSOverlayState::PistolOneHanded;
 		PistolTwoHanded_ = State == EALSOverlayState::PistolTwoHanded;
+		Shotgun_ = State == EALSOverlayState::Shotgun;
+		Sniper_ = State == EALSOverlayState::Sniper;
+		Launcher_ = State == EALSOverlayState::Launcher;
+		Sword_ = State == EALSOverlayState::Sword;
+		Knife_ = State == EALSOverlayState::Knife;
+		Chainsaw_ = State == EALSOverlayState::Chainsaw;
+		SwordShield_ = State == EALSOverlayState::SwordShield;
+
+		Melee_ = State == EALSOverlayState::Melee;
 		Bow_ = State == EALSOverlayState::Bow;
 		Torch_ = State == EALSOverlayState::Torch;
 		Binoculars_ = State == EALSOverlayState::Binoculars;

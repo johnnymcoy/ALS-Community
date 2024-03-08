@@ -3,7 +3,6 @@
 
 
 #include "Character/ALSCharacter.h"
-
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/StaticMesh.h"
 #include "AI/ALSAIController.h"
@@ -12,23 +11,45 @@
 AALSCharacter::AALSCharacter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	HeldObjectRoot = CreateDefaultSubobject<USceneComponent>(TEXT("HeldObjectRoot"));
-	HeldObjectRoot->SetupAttachment(GetMesh());
+	
+	// HeldObjectRoot = CreateDefaultSubobject<USceneComponent>(TEXT("HeldObjectRoot"));
+	// HeldObjectRoot->SetupAttachment(GetMesh());
 
-	SkeletalMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("SkeletalMesh"));
-	SkeletalMesh->SetupAttachment(HeldObjectRoot);
+	HeldObjectRoot = CreateOptionalDefaultSubobject<USceneComponent>(TEXT("HeldObjectRoot"));
+	// HeldObjectRoot->SetupAttachment(GetMesh());
 
-	StaticMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StaticMesh"));
-	StaticMesh->SetupAttachment(HeldObjectRoot);
+	SkeletalMesh = CreateOptionalDefaultSubobject<USkeletalMeshComponent>(TEXT("SkeletalMesh"));
+	// if(HeldObjectRoot != nullptr)
+	// {
+	// 	SkeletalMesh->SetupAttachment(HeldObjectRoot);
+	// }
+
+	// SkeletalMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("SkeletalMesh"));
+	// SkeletalMesh->SetupAttachment(HeldObjectRoot);
+	StaticMesh = CreateOptionalDefaultSubobject<UStaticMeshComponent>(TEXT("StaticMesh"));
+	// if(HeldObjectRoot != nullptr)
+	// {
+	// 	StaticMesh->SetupAttachment(HeldObjectRoot);
+	// }
+	// StaticMesh->SetupAttachment(HeldObjectRoot);
+
+	// StaticMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StaticMesh"));
+	// StaticMesh->SetupAttachment(HeldObjectRoot);
 
 	AIControllerClass = AALSAIController::StaticClass();
 }
 
 void AALSCharacter::ClearHeldObject()
 {
-	StaticMesh->SetStaticMesh(nullptr);
-	SkeletalMesh->SetSkeletalMesh(nullptr);
-	SkeletalMesh->SetAnimInstanceClass(nullptr);
+	if(StaticMesh != nullptr)
+	{
+		StaticMesh->SetStaticMesh(nullptr);
+	}
+	if(SkeletalMesh != nullptr)
+	{
+		SkeletalMesh->SetSkeletalMesh(nullptr);
+		SkeletalMesh->SetAnimInstanceClass(nullptr);
+	}
 }
 
 void AALSCharacter::AttachToHand(UStaticMesh* NewStaticMesh, USkeletalMesh* NewSkeletalMesh, UClass* NewAnimClass,
@@ -36,17 +57,18 @@ void AALSCharacter::AttachToHand(UStaticMesh* NewStaticMesh, USkeletalMesh* NewS
 {
 	ClearHeldObject();
 
-	if (IsValid(NewStaticMesh))
+	if (IsValid(NewStaticMesh) && StaticMesh != nullptr)
 	{
 		StaticMesh->SetStaticMesh(NewStaticMesh);
 	}
-	else if (IsValid(NewSkeletalMesh))
+	else if (IsValid(NewSkeletalMesh) && SkeletalMesh != nullptr)
 	{
 		SkeletalMesh->SetSkeletalMesh(NewSkeletalMesh);
 		if (IsValid(NewAnimClass))
 		{
 			SkeletalMesh->SetAnimInstanceClass(NewAnimClass);
 		}
+		
 	}
 
 	FName AttachBone;
@@ -58,10 +80,12 @@ void AALSCharacter::AttachToHand(UStaticMesh* NewStaticMesh, USkeletalMesh* NewS
 	{
 		AttachBone = TEXT("VB RHS_ik_hand_gun");
 	}
-
-	HeldObjectRoot->AttachToComponent(GetMesh(),
-	                                  FAttachmentTransformRules::SnapToTargetNotIncludingScale, AttachBone);
-	HeldObjectRoot->SetRelativeLocation(Offset);
+	if(HeldObjectRoot != nullptr)
+	{
+		HeldObjectRoot->AttachToComponent(GetMesh(),
+		                                  FAttachmentTransformRules::SnapToTargetNotIncludingScale, AttachBone);
+		HeldObjectRoot->SetRelativeLocation(Offset);
+	}
 }
 
 void AALSCharacter::RagdollStart()

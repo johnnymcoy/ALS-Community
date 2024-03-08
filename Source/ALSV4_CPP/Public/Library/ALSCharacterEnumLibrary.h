@@ -24,31 +24,33 @@ static FORCEINLINE FString GetEnumerationToString(const Enumeration InValue)
 /**
  * Character gait state. Note: Also edit related struct in ALSStructEnumLibrary if you add new enums
  */
-UENUM(BlueprintType, meta = (ScriptName = "ALS_Gait"))
+UENUM(BlueprintType, meta = (ScriptName = "EALSGaitPython"))
 enum class EALSGait : uint8
 {
 	Walking,
 	Running,
-	Sprinting
+	Sprinting,
+	Sliding
 };
 
 /**
  * Character movement action state. Note: Also edit related struct in ALSStructEnumLibrary if you add new enums
  */
-UENUM(BlueprintType, meta = (ScriptName = "ALS_MovementAction"))
+UENUM(BlueprintType, meta = (ScriptName = "EALSMovementActionPython"))
 enum class EALSMovementAction : uint8
 {
 	None,
 	LowMantle,
 	HighMantle,
 	Rolling,
-	GettingUp
+	GettingUp,
+	// Sliding TODO Add in sliding?
 };
 
 /**
  * Character movement state. Note: Also edit related struct in ALSStructEnumLibrary if you add new enums
  */
-UENUM(BlueprintType, meta = (ScriptName = "ALS_MovementState"))
+UENUM(BlueprintType, Meta = (ScriptName = "EALSMovementStatePython"))
 enum class EALSMovementState : uint8
 {
 	None,
@@ -61,7 +63,7 @@ enum class EALSMovementState : uint8
 /**
  * Character overlay state. Note: Also edit related struct in ALSStructEnumLibrary if you add new enums
  */
-UENUM(BlueprintType, meta = (ScriptName = "ALS_OverlayState"))
+UENUM(BlueprintType, Meta = (ScriptName = "EALSOverlayStatePython"))
 enum class EALSOverlayState : uint8
 {
 	Default,
@@ -72,6 +74,14 @@ enum class EALSOverlayState : uint8
 	Rifle,
 	PistolOneHanded,
 	PistolTwoHanded,
+	Shotgun,
+	Sniper,
+	Launcher,
+	Sword,
+	Knife,
+	Chainsaw,
+	SwordShield,
+	Melee,
 	Bow,
 	Torch,
 	Binoculars,
@@ -82,7 +92,7 @@ enum class EALSOverlayState : uint8
 /**
  * Character rotation mode. Note: Also edit related struct in ALSStructEnumLibrary if you add new enums
  */
-UENUM(BlueprintType, meta = (ScriptName="ALS_RotationMode"))
+UENUM(BlueprintType, Meta = (ScriptName = "EALSRotationModePython"))
 enum class EALSRotationMode : uint8
 {
 	VelocityDirection,
@@ -93,24 +103,25 @@ enum class EALSRotationMode : uint8
 /**
  * Character stance. Note: Also edit related struct in ALSStructEnumLibrary if you add new enums
  */
-UENUM(BlueprintType, meta = (ScriptName = "ALS_Stance"))
+UENUM(BlueprintType, Meta = (ScriptName = "EALSStancePython"))
 enum class EALSStance : uint8
 {
 	Standing,
-	Crouching
+	Crouching,
+	Crawling
 };
 
 /**
  * Character view mode. Note: Also edit related struct in ALSStructEnumLibrary if you add new enums
  */
-UENUM(BlueprintType, meta = (ScriptName = "ALS_ViewMode"))
+UENUM(BlueprintType)
 enum class EALSViewMode : uint8
 {
 	ThirdPerson,
 	FirstPerson
 };
 
-UENUM(BlueprintType, meta = (ScriptName = "ALS_AnimFeatureExample"))
+UENUM(BlueprintType)
 enum class EALSAnimFeatureExample : uint8
 {
 	StrideBlending,
@@ -118,7 +129,7 @@ enum class EALSAnimFeatureExample : uint8
 	SprintImpulse
 };
 
-UENUM(BlueprintType, meta = (ScriptName = "ALS_FootstepType"))
+UENUM(BlueprintType)
 enum class EALSFootstepType : uint8
 {
 	Step,
@@ -127,14 +138,14 @@ enum class EALSFootstepType : uint8
 	Land
 };
 
-UENUM(BlueprintType, meta = (ScriptName = "ALS_GroundedEntryState"))
+UENUM(BlueprintType, Meta = (ScriptName = "EALSGroundedEntryStatePython"))
 enum class EALSGroundedEntryState : uint8
 {
 	None,
 	Roll
 };
 
-UENUM(BlueprintType, meta = (ScriptName = "ALS_HipsDirection"))
+UENUM(BlueprintType)
 enum class EALSHipsDirection : uint8
 {
 	F,
@@ -145,7 +156,7 @@ enum class EALSHipsDirection : uint8
 	LB
 };
 
-UENUM(BlueprintType, meta = (ScriptName = "ALS_MantleType"))
+UENUM(BlueprintType)
 enum class EALSMantleType : uint8
 {
 	HighMantle,
@@ -153,7 +164,7 @@ enum class EALSMantleType : uint8
 	FallingCatch
 };
 
-UENUM(BlueprintType, meta = (ScriptName = "ALS_MovementDirection"))
+UENUM(BlueprintType, Meta = (ScriptName = "EALSMovementDirectionPython"))
 enum class EALSMovementDirection : uint8
 {
 	Forward,
@@ -162,7 +173,7 @@ enum class EALSMovementDirection : uint8
 	Backward
 };
 
-UENUM(BlueprintType, meta = (ScriptName = "ALS_SpawnType"))
+UENUM(BlueprintType)
 enum class EALSSpawnType : uint8
 {
 	Location,

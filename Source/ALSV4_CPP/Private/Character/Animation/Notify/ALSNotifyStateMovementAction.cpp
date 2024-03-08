@@ -3,10 +3,8 @@
 
 
 #include "Character/Animation/Notify/ALSNotifyStateMovementAction.h"
-
-#include "Character/ALSBaseCharacter.h"
-
 #include "Components/SkeletalMeshComponent.h"
+#include "Character/ALSBaseCharacter.h"
 
 void UALSNotifyStateMovementAction::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
                                                 float TotalDuration, const FAnimNotifyEventReference& EventReference)

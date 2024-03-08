@@ -47,6 +47,11 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable, Category = "ALS|Mantle System")
 	FALSMantleAsset GetMantleAsset(EALSMantleType MantleType, EALSOverlayState CurrentOverlayState);
 
+
+	//-		Custom Added	//
+	UFUNCTION(BlueprintCallable, Category = "ALS|Mantle System")
+	bool IsMantlePlaying(){if(MantleTimeline == nullptr){return false;}return MantleTimeline->IsPlaying();};
+
 protected:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
 	                           FActorComponentTickFunction* ThisTickFunction) override;

@@ -35,7 +35,7 @@ public:
 	AALSBaseCharacter(const FObjectInitializer& ObjectInitializer);
 
 	UFUNCTION(BlueprintCallable, Category = "ALS|Movement")
-	FORCEINLINE class UALSCharacterMovementComponent* GetMyMovementComponent() const
+	FORCEINLINE class UALSCharacterMovementComponent* GetALSMovementComponent() const
 	{
 		return MyCharacterMovementComponent;
 	}
@@ -223,14 +223,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "ALS|Movement System")
 	FALSMovementSettings GetTargetMovementSettings() const;
 
+	//- Changed
 	UFUNCTION(BlueprintCallable, Category = "ALS|Movement System")
-	EALSGait GetAllowedGait() const;
+	virtual EALSGait GetAllowedGait() const;
 
 	UFUNCTION(BlueprintCallable, Category = "ALS|Movement System")
 	EALSGait GetActualGait(EALSGait AllowedGait) const;
 
 	UFUNCTION(BlueprintCallable, Category = "ALS|Movement System")
-	bool CanSprint() const;
+	virtual bool CanSprint() const;
 
 	/** BP implementable function that called when Breakfall starts */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "ALS|Movement System")
@@ -317,14 +318,14 @@ public:
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "ALS|Input")
 	void CameraRightAction(float Value);
 
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "ALS|Input")
-	void JumpAction(bool bValue);
+	// UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "ALS|Input")
+	virtual void JumpAction(bool bValue);
 
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "ALS|Input")
-	void SprintAction(bool bValue);
+	// UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "ALS|Input")
+	virtual void SprintAction(bool bValue);
 
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "ALS|Input")
-	void AimAction(bool bValue);
+	// UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "ALS|Input")
+	virtual void AimAction(bool bValue);
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "ALS|Input")
 	void CameraTapAction();
@@ -332,8 +333,8 @@ public:
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "ALS|Input")
 	void CameraHeldAction();
 
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "ALS|Input")
-	void StanceAction();
+	// UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "ALS|Input")
+	virtual void StanceAction();
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "ALS|Input")
 	void WalkAction();
@@ -349,9 +350,9 @@ public:
 
 protected:
 	/** Ragdoll System */
-
+	UFUNCTION(BlueprintCallable, Category = "ALS|Ragdoll System")
 	void RagdollUpdate(float DeltaTime);
-
+	UFUNCTION(BlueprintCallable, Category = "ALS|Ragdoll System")
 	void SetActorLocationDuringRagdoll(float DeltaTime);
 
 	/** State Changes */
@@ -617,6 +618,10 @@ protected:
 
 	/** We won't use curve based movement and a few other features on networked games */
 	bool bEnableNetworkOptimizations = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ALS|Camera")
+	bool bForceEnableNetworkOptimizationsOff = false;
+
 
 private:
 	UPROPERTY()

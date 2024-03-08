@@ -27,7 +27,7 @@ struct FALSComponentAndTransform
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, Category = "Character Struct Library")
-	FTransform Transform = FTransform::Identity;
+	FTransform Transform  = FTransform::Identity;
 
 	UPROPERTY(EditAnywhere, Category = "Character Struct Library")
 	TObjectPtr<UPrimitiveComponent> Component = nullptr;
@@ -42,7 +42,7 @@ struct FALSCameraSettings
 	float TargetArmLength = 0.0f;
 
 	UPROPERTY(EditAnywhere, Category = "Camera")
-	FVector SocketOffset = FVector::ZeroVector;
+	FVector SocketOffset = FVector::ZeroVector;;
 
 	UPROPERTY(EditAnywhere, Category = "Camera")
 	float LagSpeed = 0.0f;
@@ -70,6 +70,10 @@ struct FALSCameraGaitSettings
 
 	UPROPERTY(EditAnywhere, Category = "Camera")
 	FALSCameraSettings Crouching;
+
+	UPROPERTY(EditAnywhere, Category = "Camera")
+	FALSCameraSettings Crawling;
+
 };
 
 USTRUCT(BlueprintType)
@@ -99,7 +103,7 @@ struct FALSMantleAsset
 	TObjectPtr<UCurveVector> PositionCorrectionCurve = nullptr;
 
 	UPROPERTY(EditAnywhere, Category = "Mantle System")
-	FVector StartingOffset = FVector::ZeroVector;
+	FVector StartingOffset = FVector::ZeroVector;;
 
 	UPROPERTY(EditAnywhere, Category = "Mantle System")
 	float LowHeight = 0.0f;
@@ -177,6 +181,9 @@ struct FALSMovementSettings
 	float SprintSpeed = 0.0f;
 
 	UPROPERTY(EditAnywhere, Category = "Movement Settings")
+	float SlideSpeed = 0.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Movement Settings")
 	TObjectPtr<UCurveVector> MovementCurve = nullptr;
 
 	UPROPERTY(EditAnywhere, Category = "Movement Settings")
@@ -192,6 +199,8 @@ struct FALSMovementSettings
 			return SprintSpeed;
 		case EALSGait::Walking:
 			return WalkSpeed;
+		case EALSGait::Sliding:
+			return SlideSpeed;
 		default:
 			return RunSpeed;
 		}
@@ -208,6 +217,10 @@ struct FALSMovementStanceSettings
 
 	UPROPERTY(EditAnywhere, Category = "Movement Settings")
 	FALSMovementSettings Crouching;
+
+	UPROPERTY(EditAnywhere, Category = "Movement Settings")
+	FALSMovementSettings Crawling;
+
 };
 
 USTRUCT(BlueprintType)
@@ -234,7 +247,7 @@ struct FALSRotateInPlaceAsset
 	TObjectPtr<UAnimSequenceBase> Animation = nullptr;
 
 	UPROPERTY(EditAnywhere, Category = "Rotation System")
-	FName SlotName = NAME_None;
+	FName SlotName;
 
 	UPROPERTY(EditAnywhere, Category = "Rotation System")
 	float SlowTurnRate = 90.0f;
@@ -261,13 +274,13 @@ struct FALSHitFX : public FTableRowBase
 	TSoftObjectPtr<USoundBase> Sound = nullptr;
 
 	UPROPERTY(EditAnywhere, Category = "Sound")
-	EALSSpawnType SoundSpawnType = EALSSpawnType::Location;
+	EALSSpawnType SoundSpawnType  = EALSSpawnType::Location;
 
 	UPROPERTY(EditAnywhere, Category = "Sound", meta = (EditCondition = "SoundSpawnType == EALSSpawnType::Attached"))
 	TEnumAsByte<enum EAttachLocation::Type> SoundAttachmentType = EAttachLocation::KeepRelativeOffset;
 
 	UPROPERTY(EditAnywhere, Category = "Sound")
-	FVector SoundLocationOffset = FVector::ZeroVector;
+	FVector SoundLocationOffset  = FVector::ZeroVector;
 
 	UPROPERTY(EditAnywhere, Category = "Sound")
 	FRotator SoundRotationOffset = FRotator::ZeroRotator;
@@ -279,7 +292,7 @@ struct FALSHitFX : public FTableRowBase
 	EALSSpawnType DecalSpawnType = EALSSpawnType::Location;
 
 	UPROPERTY(EditAnywhere, Category = "Decal", meta = (EditCondition = "DecalSpawnType == EALSSpawnType::Attached"))
-	TEnumAsByte<enum EAttachLocation::Type> DecalAttachmentType = EAttachLocation::KeepRelativeOffset;
+	TEnumAsByte<enum EAttachLocation::Type> DecalAttachmentType = EAttachLocation::KeepRelativeOffset;;
 
 	UPROPERTY(EditAnywhere, Category = "Decal")
 	float DecalLifeSpan = 10.0f;
@@ -294,7 +307,7 @@ struct FALSHitFX : public FTableRowBase
 	FRotator DecalRotationOffset = FRotator::ZeroRotator;
 
 	UPROPERTY(EditAnywhere, Category = "Niagara")
-	TSoftObjectPtr<UNiagaraSystem> NiagaraSystem = nullptr;
+	TSoftObjectPtr<UNiagaraSystem> NiagaraSystem;
 
 	UPROPERTY(EditAnywhere, Category = "Niagara")
 	EALSSpawnType NiagaraSpawnType = EALSSpawnType::Location;

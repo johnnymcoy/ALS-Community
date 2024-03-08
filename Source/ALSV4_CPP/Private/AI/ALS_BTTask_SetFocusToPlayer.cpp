@@ -2,7 +2,6 @@
 // Source Code:     https://github.com/dyanikoglu/ALS-Community
 
 #include "AI/ALS_BTTask_SetFocusToPlayer.h"
-#include "Engine/World.h"
 #include "Runtime/Engine/Classes/Kismet/GameplayStatics.h"
 #include "AIController.h"
 

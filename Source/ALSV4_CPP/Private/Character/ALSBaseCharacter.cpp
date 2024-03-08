@@ -34,9 +34,12 @@ AALSBaseCharacter::AALSBaseCharacter(const FObjectInitializer& ObjectInitializer
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UALSCharacterMovementComponent>(CharacterMovementComponentName))
 {
 	PrimaryActorTick.bCanEverTick = true;
-	bUseControllerRotationYaw = 0;
+	bUseControllerRotationYaw = false;
 	bReplicates = true;
 	SetReplicatingMovement(true);
+	GetCapsuleComponent()->SetCapsuleHalfHeight(90.0f);
+	GetCapsuleComponent()->SetCapsuleRadius(35.0f);
+
 }
 
 void AALSBaseCharacter::PostInitializeComponents()
@@ -85,6 +88,7 @@ void AALSBaseCharacter::BeginPlay()
 
 	// If we're in networked game, disable curved movement
 	bEnableNetworkOptimizations = !IsNetMode(NM_Standalone);
+	if(bForceEnableNetworkOptimizationsOff){bEnableNetworkOptimizations = false;}
 
 	// Make sure the mesh and animbp update after the CharacterBP to ensure it gets the most recent values.
 	GetMesh()->AddTickPrerequisiteActor(this);
@@ -147,6 +151,7 @@ void AALSBaseCharacter::Tick(float DeltaTime)
 
 void AALSBaseCharacter::RagdollStart()
 {
+	if(GetWorld() == nullptr){return;} //- Added world Check..
 	if (RagdollStateChangedDelegate.IsBound())
 	{
 		RagdollStateChangedDelegate.Broadcast(true);
@@ -155,7 +160,6 @@ void AALSBaseCharacter::RagdollStart()
 	/** When Networked, disables replicate movement reset TargetRagdollLocation and ServerRagdollPull variable
 	and if the host is a dedicated server, change character mesh optimisation option to avoid z-location bug*/
 	MyCharacterMovementComponent->bIgnoreClientMovementErrorChecksAndCorrection = 1;
-
 	if (UKismetSystemLibrary::IsDedicatedServer(GetWorld()))
 	{
 		DefVisBasedTickOp = GetMesh()->VisibilityBasedAnimTickOption;
@@ -494,11 +498,17 @@ void AALSBaseCharacter::SetActorLocationAndTargetRotation(FVector NewLocation, F
 
 void AALSBaseCharacter::SetMovementModel()
 {
-	const FString ContextString = GetFullName();
-	FALSMovementStateSettings* OutRow =
-		MovementModel.DataTable->FindRow<FALSMovementStateSettings>(MovementModel.RowName, ContextString);
-	check(OutRow);
-	MovementData = *OutRow;
+	if (ensureMsgf(!MovementModel.IsNull(), TEXT("Did you forget to fill in MovementModel information?")))
+	{
+		const FString ContextString = GetFullName();
+		FALSMovementStateSettings* OutRow = MovementModel.DataTable->FindRow<FALSMovementStateSettings>(MovementModel.RowName, ContextString);
+		if (ensureMsgf(OutRow, TEXT("Failed to find row")))
+		{
+			MovementData = *OutRow;
+			return;
+		}
+	}
+	MovementData = {};
 }
 
 void AALSBaseCharacter::ForceUpdateCharacterState()
@@ -1015,6 +1025,7 @@ void AALSBaseCharacter::UpdateCharacterMovement()
 	// Update the Character Max Walk Speed to the configured speeds based on the currently Allowed Gait.
 	MyCharacterMovementComponent->SetAllowedGait(AllowedGait);
 }
+//@TODO check these for roation replication Bug//
 
 void AALSBaseCharacter::UpdateGroundedRotation(float DeltaTime)
 {
@@ -1164,7 +1175,7 @@ EALSGait AALSBaseCharacter::GetActualGait(EALSGait AllowedGait) const
 
 	return EALSGait::Walking;
 }
-
+//@TODO check these for roation replication Bug//
 void AALSBaseCharacter::SmoothCharacterRotation(FRotator Target, float TargetInterpSpeed, float ActorInterpSpeed,
                                                 float DeltaTime)
 {
@@ -1180,12 +1191,15 @@ float AALSBaseCharacter::CalculateGroundedRotationRate() const
 	// Calculate the rotation rate by using the current Rotation Rate Curve in the Movement Settings.
 	// Using the curve in conjunction with the mapped speed gives you a high level of control over the rotation
 	// rates for each speed. Increase the speed if the camera is rotating quickly for more responsive rotation.
-
-	const float MappedSpeedVal = MyCharacterMovementComponent->GetMappedSpeed();
-	const float CurveVal =
-		MyCharacterMovementComponent->CurrentMovementSettings.RotationRateCurve->GetFloatValue(MappedSpeedVal);
-	const float ClampedAimYawRate = FMath::GetMappedRangeValueClamped<float, float>({0.0f, 300.0f}, {1.0f, 3.0f}, AimYawRate);
-	return CurveVal * ClampedAimYawRate;
+	if (ensure(IsValid(MyCharacterMovementComponent) && ensure(IsValid(MyCharacterMovementComponent->CurrentMovementSettings.RotationRateCurve))))
+	{
+		const float MappedSpeedVal = MyCharacterMovementComponent->GetMappedSpeed();
+		const float CurveVal =
+			MyCharacterMovementComponent->CurrentMovementSettings.RotationRateCurve->GetFloatValue(MappedSpeedVal);
+		const float ClampedAimYawRate = FMath::GetMappedRangeValueClamped<float, float>({0.0f, 300.0f}, {1.0f, 3.0f}, AimYawRate);
+		return CurveVal * ClampedAimYawRate;
+	}
+	return 0.0f;
 }
 
 void AALSBaseCharacter::LimitRotation(float AimYawMin, float AimYawMax, float InterpSpeed, float DeltaTime)
@@ -1233,7 +1247,7 @@ void AALSBaseCharacter::CameraRightAction_Implementation(float Value)
 	AddControllerYawInput(LookLeftRightRate * Value);
 }
 
-void AALSBaseCharacter::JumpAction_Implementation(bool bValue)
+void AALSBaseCharacter::JumpAction(bool bValue)
 {
 	if (bValue)
 	{
@@ -1268,9 +1282,9 @@ void AALSBaseCharacter::JumpAction_Implementation(bool bValue)
 	}
 }
 
-void AALSBaseCharacter::SprintAction_Implementation(bool bValue)
+void AALSBaseCharacter::SprintAction(bool bValue)
 {
-	if (bValue)
+	if(bValue)
 	{
 		SetDesiredGait(EALSGait::Sprinting);
 	}
@@ -1280,9 +1294,9 @@ void AALSBaseCharacter::SprintAction_Implementation(bool bValue)
 	}
 }
 
-void AALSBaseCharacter::AimAction_Implementation(bool bValue)
+void AALSBaseCharacter::AimAction(bool bValue)
 {
-	if (bValue)
+	if(bValue)
 	{
 		// AimAction: Hold "AimAction" to enter the aiming mode, release to revert back the desired rotation mode.
 		SetRotationMode(EALSRotationMode::Aiming);
@@ -1325,7 +1339,7 @@ void AALSBaseCharacter::CameraHeldAction_Implementation()
 	}
 }
 
-void AALSBaseCharacter::StanceAction_Implementation()
+void AALSBaseCharacter::StanceAction()
 {
 	// Stance Action: Press "Stance Action" to toggle Standing / Crouching, double tap to Roll.
 

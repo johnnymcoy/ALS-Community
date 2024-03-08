@@ -54,10 +54,10 @@ protected:
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS|Component")
 	TObjectPtr<USceneComponent> HeldObjectRoot = nullptr;
-
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS|Component")
 	TObjectPtr<USkeletalMeshComponent> SkeletalMesh = nullptr;
-
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS|Component")
 	TObjectPtr<UStaticMeshComponent> StaticMesh = nullptr;
 

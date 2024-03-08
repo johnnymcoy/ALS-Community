@@ -50,9 +50,9 @@ protected:
 
 	UFUNCTION()
 	void SprintAction(const FInputActionValue& Value);
-
+	
 	UFUNCTION()
-	void AimAction(const FInputActionValue& Value);
+	virtual void AimAction(const FInputActionValue& Value);
 
 	UFUNCTION()
 	void CameraTapAction(const FInputActionValue& Value);
