@@ -40,10 +40,10 @@ protected:
 	void RightMovementAction(const FInputActionValue& Value);
 
 	UFUNCTION()
-	void CameraUpAction(const FInputActionValue& Value);
+	virtual void CameraUpAction(const FInputActionValue& Value);
 
 	UFUNCTION()
-	void CameraRightAction(const FInputActionValue& Value);
+	virtual void CameraRightAction(const FInputActionValue& Value);
 
 	UFUNCTION()
 	void JumpAction(const FInputActionValue& Value);

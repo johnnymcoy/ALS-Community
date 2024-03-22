@@ -132,7 +132,7 @@ void AALSPlayerController::ForwardMovementAction(const FInputActionValue& Value)
 
 void AALSPlayerController::RightMovementAction(const FInputActionValue& Value)
 {
-	if (PossessedCharacter)
+	if(PossessedCharacter)
 	{
 		PossessedCharacter->RightMovementAction(Value.GetMagnitude());
 	}
@@ -140,7 +140,7 @@ void AALSPlayerController::RightMovementAction(const FInputActionValue& Value)
 
 void AALSPlayerController::CameraUpAction(const FInputActionValue& Value)
 {
-	if (PossessedCharacter)
+	if(PossessedCharacter)
 	{
 		PossessedCharacter->CameraUpAction(Value.GetMagnitude());
 	}
