@@ -44,9 +44,14 @@ static const FName NAME_VB___foot_target_r(TEXT("VB foot_target_r"));
 static const FName NAME_W_Gait(TEXT("W_Gait"));
 static const FName NAME__ALSCharacterAnimInstance__root(TEXT("root"));
 
+DECLARE_CYCLE_STAT(TEXT("ALS Animations (All Functions)"), STATGROUP_ALS_Animations, STATGROUP_ALS);
+
 
 void UALSCharacterAnimInstance::NativeInitializeAnimation()
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::NativeInitializeAnimation);
+
 	Super::NativeInitializeAnimation();
 	Character = Cast<AALSBaseCharacter>(TryGetPawnOwner());
 	if (Character)
@@ -57,17 +62,24 @@ void UALSCharacterAnimInstance::NativeInitializeAnimation()
 
 void UALSCharacterAnimInstance::NativeBeginPlay()
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::NativeBeginPlay);
 	// it seems to be that the player pawn components are not really initialized
 	// when the call to NativeInitializeAnimation() happens.
 	// This is the reason why it is tried here to get the ALS debug component.
-	if (APawn* Owner = TryGetPawnOwner())
+	if (const APawn* Owner = TryGetPawnOwner())
 	{
 		ALSDebugComponent = Owner->FindComponentByClass<UALSDebugComponent>();
 	}
+
 }
 
 void UALSCharacterAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::NativeUpdateAnimation);
+	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("ALS NativeUpdateAnimation"), STAT_ALS_NativeThreadSafeUpdateAnimation, STATGROUP_ALS)
+
 	Super::NativeUpdateAnimation(DeltaSeconds);
 
 	if (!Character || DeltaSeconds == 0.0f)
@@ -159,8 +171,19 @@ void UALSCharacterAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	}
 }
 
+void UALSCharacterAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSeconds)
+{
+	Super::NativeThreadSafeUpdateAnimation(DeltaSeconds);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::NativeThreadSafeUpdateAnimation);
+	// UpdateFootIK(DeltaSeconds);
+
+}
+
 void UALSCharacterAnimInstance::PlayTransition(const FALSDynamicMontageParams& Parameters)
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+    TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::PlayTransition);
 	PlaySlotAnimationAsDynamicMontage(Parameters.Animation, NAME_Grounded___Slot,
 	                                  Parameters.BlendInTime, Parameters.BlendOutTime, Parameters.PlayRate, 1,
 	                                  0.0f, Parameters.StartTime);
@@ -168,6 +191,8 @@ void UALSCharacterAnimInstance::PlayTransition(const FALSDynamicMontageParams& P
 
 void UALSCharacterAnimInstance::PlayTransitionChecked(const FALSDynamicMontageParams& Parameters)
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::PlayTransitionChecked);
 	if (Stance.Standing() && !Grounded.bShouldMove)
 	{
 		PlayTransition(Parameters);
@@ -176,6 +201,8 @@ void UALSCharacterAnimInstance::PlayTransitionChecked(const FALSDynamicMontagePa
 
 void UALSCharacterAnimInstance::PlayDynamicTransition(float ReTriggerDelay, FALSDynamicMontageParams Parameters)
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::PlayDynamicTransition);
 	if (bCanPlayDynamicTransition)
 	{
 		bCanPlayDynamicTransition = false;
@@ -193,18 +220,24 @@ void UALSCharacterAnimInstance::PlayDynamicTransition(float ReTriggerDelay, FALS
 
 bool UALSCharacterAnimInstance::ShouldMoveCheck() const
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::ShouldMoveCheck);
 	return (CharacterInformation.bIsMoving && CharacterInformation.bHasMovementInput) ||
 		CharacterInformation.Speed > 150.0f;
 }
 
 bool UALSCharacterAnimInstance::CanRotateInPlace() const
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::CanRotateInPlace);
 	return RotationMode.Aiming() ||
 		CharacterInformation.ViewMode == EALSViewMode::FirstPerson;
 }
 
 bool UALSCharacterAnimInstance::CanTurnInPlace() const
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::CanTurnInPlace);
 	return RotationMode.LookingDirection() &&
 		CharacterInformation.ViewMode == EALSViewMode::ThirdPerson &&
 		GetCurveValue(NAME_Enable_Transition) >= 0.99f;
@@ -212,26 +245,36 @@ bool UALSCharacterAnimInstance::CanTurnInPlace() const
 
 bool UALSCharacterAnimInstance::CanDynamicTransition() const
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::CanDynamicTransition);
 	return GetCurveValue(NAME_Enable_Transition) >= 0.99f;
 }
 
 void UALSCharacterAnimInstance::PlayDynamicTransitionDelay()
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::PlayDynamicTransitionDelay);
 	bCanPlayDynamicTransition = true;
 }
 
 void UALSCharacterAnimInstance::OnJumpedDelay()
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::OnJumpedDelay);
 	InAir.bJumped = false;
 }
 
 void UALSCharacterAnimInstance::OnPivotDelay()
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::OnPivotDelay);
 	Grounded.bPivot = false;
 }
 
 void UALSCharacterAnimInstance::UpdateAimingValues(float DeltaSeconds)
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::UpdateAimingValues);
 	// Interp the Aiming Rotation value to achieve smooth aiming rotation changes.
 	// Interpolating the rotation before calculating the angle ensures the value is not affected by changes
 	// in actor rotation, allowing slow aiming rotation changes with fast actor rotation changes.
@@ -289,6 +332,8 @@ void UALSCharacterAnimInstance::UpdateAimingValues(float DeltaSeconds)
 
 void UALSCharacterAnimInstance::UpdateLayerValues()
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::UpdateLayerValues);
 	// Get the Aim Offset weight by getting the opposite of the Aim Offset Mask.
 	LayerBlendingValues.EnableAimOffset = FMath::Lerp(1.0f, 0.0f, GetCurveValue(NAME_Mask_AimOffset));
 	// Set the Base Pose weights
@@ -317,6 +362,9 @@ void UALSCharacterAnimInstance::UpdateLayerValues()
 
 void UALSCharacterAnimInstance::UpdateFootIK(float DeltaSeconds)
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::UpdateFootIK);
+	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("ALS UpdateFootIK"), STAT_ALS_UpdateFootIK, STATGROUP_ALS)
 	FVector FootOffsetLTarget = FVector::ZeroVector;
 	FVector FootOffsetRTarget = FVector::ZeroVector;
 
@@ -351,6 +399,8 @@ void UALSCharacterAnimInstance::SetFootLocking(float DeltaSeconds, FName EnableF
                                                FName IKFootBone, float& CurFootLockAlpha, bool& UseFootLockCurve,
                                                FVector& CurFootLockLoc, FRotator& CurFootLockRot)
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::SetFootLocking);
 	if (GetCurveValue(EnableFootIKCurve) <= 0.0f)
 	{
 		return;
@@ -397,6 +447,10 @@ void UALSCharacterAnimInstance::SetFootLocking(float DeltaSeconds, FName EnableF
 
 void UALSCharacterAnimInstance::SetFootLockOffsets(float DeltaSeconds, FVector& LocalLoc, FRotator& LocalRot)
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::SetFootLockOffsets);
+	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("ALS SetFootLockOffsets"), STAT_ALS_SetFootLockOffsets, STATGROUP_ALS)
+
 	FRotator RotationDifference = FRotator::ZeroRotator;
 	// Use the delta between the current and last updated rotation to find how much the foot should be rotated
 	// to remain planted on the ground.
@@ -425,6 +479,8 @@ void UALSCharacterAnimInstance::SetFootLockOffsets(float DeltaSeconds, FVector& 
 void UALSCharacterAnimInstance::SetPelvisIKOffset(float DeltaSeconds, FVector FootOffsetLTarget,
                                                   FVector FootOffsetRTarget)
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::SetPelvisIKOffset);
 	// Calculate the Pelvis Alpha by finding the average Foot IK weight. If the alpha is 0, clear the offset.
 	FootIKValues.PelvisAlpha =
 		(GetCurveValue(NAME_Enable_FootIK_L) + GetCurveValue(NAME_Enable_FootIK_R)) / 2.0f;
@@ -448,6 +504,8 @@ void UALSCharacterAnimInstance::SetPelvisIKOffset(float DeltaSeconds, FVector Fo
 
 void UALSCharacterAnimInstance::ResetIKOffsets(float DeltaSeconds)
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::ResetIKOffsets);
 	// Interp Foot IK offsets back to 0
 	FootIKValues.FootOffset_L_Location = FMath::VInterpTo(FootIKValues.FootOffset_L_Location,
 	                                                      FVector::ZeroVector, DeltaSeconds, 15.0f);
@@ -463,6 +521,10 @@ void UALSCharacterAnimInstance::SetFootOffsets(float DeltaSeconds, FName EnableF
                                                FName RootBone, FVector& CurLocationTarget, FVector& CurLocationOffset,
                                                FRotator& CurRotationOffset)
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::SetFootOffsets);
+	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("ALS SetFootOffsets"), STAT_ALS_SetFootOffsets, STATGROUP_ALS)
+
 	// Only update Foot IK offset values if the Foot IK curve has a weight. If it equals 0, clear the offset values.
 	if (GetCurveValue(EnableFootIKCurve) <= 0)
 	{
@@ -534,6 +596,8 @@ void UALSCharacterAnimInstance::SetFootOffsets(float DeltaSeconds, FName EnableF
 
 void UALSCharacterAnimInstance::RotateInPlaceCheck()
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::RotateInPlaceCheck);
 	// Step 1: Check if the character should rotate left or right by checking if the Aiming Angle exceeds the threshold.
 	Grounded.bRotateL = AimingValues.AimingAngle.X < RotateInPlace.RotateMinThreshold;
 	Grounded.bRotateR = AimingValues.AimingAngle.X > RotateInPlace.RotateMaxThreshold;
@@ -551,6 +615,8 @@ void UALSCharacterAnimInstance::RotateInPlaceCheck()
 
 void UALSCharacterAnimInstance::TurnInPlaceCheck(float DeltaSeconds)
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::TurnInPlaceCheck);
 	// Step 1: Check if Aiming angle is outside of the Turn Check Min Angle, and if the Aim Yaw Rate is below the Aim Yaw Rate Limit.
 	// If so, begin counting the Elapsed Delay Time. If not, reset the Elapsed Delay Time.
 	// This ensures the conditions remain true for a sustained period of time before turning in place.
@@ -581,6 +647,10 @@ void UALSCharacterAnimInstance::TurnInPlaceCheck(float DeltaSeconds)
 
 void UALSCharacterAnimInstance::DynamicTransitionCheck()
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::DynamicTransitionCheck);
+	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("ALS DynamicTransitionCheck"), STAT_ALS_DynamicTransitionCheck, STATGROUP_ALS);
+
 	// Check each foot to see if the location difference between the IK_Foot bone and its desired / target location
 	// (determined via a virtual bone) exceeds a threshold. If it does, play an additive transition animation on that foot.
 	// The currently set transition plays the second half of a 2 foot transition animation, so that only a single foot moves.
@@ -617,6 +687,8 @@ void UALSCharacterAnimInstance::DynamicTransitionCheck()
 
 void UALSCharacterAnimInstance::UpdateMovementValues(float DeltaSeconds)
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::UpdateMovementValues);
 	// Interp and set the Velocity Blend.
 	const FALSVelocityBlend& TargetBlend = CalculateVelocityBlend();
 	VelocityBlend.F = FMath::FInterpTo(VelocityBlend.F, TargetBlend.F, DeltaSeconds, Config.VelocityBlendInterpSpeed);
@@ -647,6 +719,8 @@ void UALSCharacterAnimInstance::UpdateMovementValues(float DeltaSeconds)
 
 void UALSCharacterAnimInstance::UpdateRotationValues()
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::UpdateRotationValues);
 	// Set the Movement Direction
 	MovementDirection = CalculateMovementDirection();
 
@@ -665,6 +739,8 @@ void UALSCharacterAnimInstance::UpdateRotationValues()
 
 void UALSCharacterAnimInstance::UpdateInAirValues(float DeltaSeconds)
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::UpdateInAirValues);
 	// Update the fall speed. Setting this value only while in the air allows you to use it within the AnimGraph for the landing strength.
 	// If not, the Z velocity would return to 0 on landing.
 	InAir.FallSpeed = CharacterInformation.Velocity.Z;
@@ -680,6 +756,8 @@ void UALSCharacterAnimInstance::UpdateInAirValues(float DeltaSeconds)
 
 void UALSCharacterAnimInstance::UpdateRagdollValues()
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::UpdateRagdollValues);
 	// Scale the Flail Rate by the velocity length. The faster the ragdoll moves, the faster the character will flail.
 	const float VelocityLength = GetOwningComponent()->GetPhysicsLinearVelocity(NAME__ALSCharacterAnimInstance__root).Size();
 	FlailRate = FMath::GetMappedRangeValueClamped<float, float>({0.0f, 1000.0f}, {0.0f, 1.0f}, VelocityLength);
@@ -688,11 +766,15 @@ void UALSCharacterAnimInstance::UpdateRagdollValues()
 float UALSCharacterAnimInstance::GetAnimCurveClamped(const FName& Name, float Bias, float ClampMin,
                                                      float ClampMax) const
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetAnimCurveClamped);
 	return FMath::Clamp(GetCurveValue(Name) + Bias, ClampMin, ClampMax);
 }
 
 FALSVelocityBlend UALSCharacterAnimInstance::CalculateVelocityBlend() const
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::CalculateVelocityBlend);
 	// Calculate the Velocity Blend. This value represents the velocity amount of the actor in each direction (normalized so that
 	// diagonals equal .5 for each direction), and is used in a BlendMulti node to produce better
 	// directional blending than a standard blendspace.
@@ -711,6 +793,8 @@ FALSVelocityBlend UALSCharacterAnimInstance::CalculateVelocityBlend() const
 
 FVector UALSCharacterAnimInstance::CalculateRelativeAccelerationAmount() const
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::CalculateRelativeAccelerationAmount);
 	// Calculate the Relative Acceleration Amount. This value represents the current amount of acceleration / deceleration
 	// relative to the actor rotation. It is normalized to a range of -1 to 1 so that -1 equals the Max Braking Deceleration,
 	// and 1 equals the Max Acceleration of the Character Movement Component.
@@ -729,6 +813,8 @@ FVector UALSCharacterAnimInstance::CalculateRelativeAccelerationAmount() const
 
 float UALSCharacterAnimInstance::CalculateStrideBlend() const
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::CalculateStrideBlend);
 	// Calculate the Stride Blend. This value is used within the blendspaces to scale the stride (distance feet travel)
 	// so that the character can walk or run at different movement speeds.
 	// It also allows the walk or run gait animations to blend independently while still matching the animation speed to
@@ -745,12 +831,16 @@ float UALSCharacterAnimInstance::CalculateStrideBlend() const
 
 float UALSCharacterAnimInstance::CalculateWalkRunBlend() const
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::CalculateWalkRunBlend);
 	// Calculate the Walk Run Blend. This value is used within the Blendspaces to blend between walking and running.
 	return Gait.Walking() ? 0.0f : 1.0;
 }
 
 float UALSCharacterAnimInstance::CalculateStandingPlayRate() const
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::CalculateStandingPlayRate);
 	// Calculate the Play Rate by dividing the Character's speed by the Animated Speed for each gait.
 	// The lerps are determined by the "W_Gait" anim curve that exists on every locomotion cycle so
 	// that the play rate is always in sync with the currently blended animation.
@@ -768,6 +858,8 @@ float UALSCharacterAnimInstance::CalculateStandingPlayRate() const
 
 float UALSCharacterAnimInstance::CalculateDiagonalScaleAmount() const
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::CalculateDiagonalScaleAmount);
 	// Calculate the Diagonal Scale Amount. This value is used to scale the Foot IK Root bone to make the Foot IK bones
 	// cover more distance on the diagonal blends. Without scaling, the feet would not move far enough on the diagonal
 	// direction due to the linear translational blending of the IK bones. The curve is used to easily map the value.
@@ -780,6 +872,8 @@ float UALSCharacterAnimInstance::CalculateDiagonalScaleAmount() const
 
 float UALSCharacterAnimInstance::CalculateCrouchingPlayRate() const
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::CalculateCrouchingPlayRate);
 	// Calculate the Crouching Play Rate by dividing the Character's speed by the Animated Speed.
 	// This value needs to be separate from the standing play rate to improve the blend from crouch to stand while in motion.
 	return FMath::Clamp(
@@ -790,6 +884,8 @@ float UALSCharacterAnimInstance::CalculateCrouchingPlayRate() const
 
 float UALSCharacterAnimInstance::CalculateLandPrediction() const
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::CalculateLandPrediction);
 	// Calculate the land prediction weight by tracing in the velocity direction to find a walkable surface the character
 	// is falling toward, and getting the 'Time' (range of 0-1, 1 being maximum, 0 being about to land) till impact.
 	// The Land Prediction Curve is used to control how the time affects the final weight for a smooth blend.
@@ -844,6 +940,8 @@ float UALSCharacterAnimInstance::CalculateLandPrediction() const
 
 FALSLeanAmount UALSCharacterAnimInstance::CalculateAirLeanAmount() const
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::CalculateAirLeanAmount);
 	// Use the relative Velocity direction and amount to determine how much the character should lean while in air.
 	// The Lean In Air curve gets the Fall Speed and is used as a multiplier to smoothly reverse the leaning direction
 	// when transitioning from moving upwards to moving downwards.
@@ -862,6 +960,8 @@ FALSLeanAmount UALSCharacterAnimInstance::CalculateAirLeanAmount() const
 
 EALSMovementDirection UALSCharacterAnimInstance::CalculateMovementDirection() const
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::CalculateMovementDirection);
 	// Calculate the Movement Direction. This value represents the direction the character is moving relative to the camera
 	// during the Looking Direction / Aiming rotation modes, and is used in the Cycle Blending Anim Layers to blend to the
 	// appropriate directional states.
@@ -878,6 +978,8 @@ EALSMovementDirection UALSCharacterAnimInstance::CalculateMovementDirection() co
 void UALSCharacterAnimInstance::TurnInPlace(FRotator TargetRotation, float PlayRateScale, float StartTime,
                                             bool OverrideCurrent)
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::TurnInPlace);
 	// Step 1: Set Turn Angle
 	FRotator Delta = TargetRotation - CharacterInformation.CharacterActorRotation;
 	Delta.Normalize();
@@ -937,6 +1039,8 @@ void UALSCharacterAnimInstance::TurnInPlace(FRotator TargetRotation, float PlayR
 
 void UALSCharacterAnimInstance::OnJumped()
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::OnJumped);
 	InAir.bJumped = true;
 	InAir.JumpPlayRate = FMath::GetMappedRangeValueClamped<float, float>({0.0f, 600.0f}, {1.2f, 1.5f}, CharacterInformation.Speed);
 
@@ -946,7 +1050,38 @@ void UALSCharacterAnimInstance::OnJumped()
 
 void UALSCharacterAnimInstance::OnPivot()
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::OnPivot);
 	Grounded.bPivot = CharacterInformation.Speed < Config.TriggerPivotSpeedLimit;
 	GetWorld()->GetTimerManager().SetTimer(OnPivotTimer, this,
 	                                  &UALSCharacterAnimInstance::OnPivotDelay, 0.1f, false);
+}
+
+void UALSCharacterAnimInstance::SetFiringWeapon(const bool bValue)
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::SetFiringWeapon);
+	bFiringWeapon = bValue;
+}
+
+void UALSCharacterAnimInstance::SetRecoilTransform(const FTransform& Transform)
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::SetRecoilTransform);
+	RecoilTransform.SetLocation(Transform.GetLocation());
+	RecoilTransform.SetRotation(Transform.GetRotation());
+}
+
+void UALSCharacterAnimInstance::SetPivotPoint(const FTransform& Transform)
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::SetPivotPoint);
+	PivotPoint = Transform;
+}
+
+void UALSCharacterAnimInstance::DisableFootIK(const float DelayTime)
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::DisableFootIK);
+	OnDisableFootIK(DelayTime);
 }

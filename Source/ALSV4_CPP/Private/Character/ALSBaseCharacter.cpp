@@ -29,6 +29,9 @@ const FName NAME_pelvis(TEXT("pelvis"));
 const FName NAME_root(TEXT("root"));
 const FName NAME_spine_03(TEXT("spine_03"));
 
+DECLARE_CYCLE_STAT(TEXT("ALS Base Character (All Functions)"), STATGROUP_ALS_Base_Character, STATGROUP_ALS);
+DECLARE_CYCLE_STAT(TEXT("ALS Base Character Tick"), STATGROUP_ALS_Base_Character_Tick, STATGROUP_ALS);
+
 
 AALSBaseCharacter::AALSBaseCharacter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UALSCharacterMovementComponent>(CharacterMovementComponentName))
@@ -44,6 +47,9 @@ AALSBaseCharacter::AALSBaseCharacter(const FObjectInitializer& ObjectInitializer
 
 void AALSBaseCharacter::PostInitializeComponents()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::PostInitializeComponents);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+
 	Super::PostInitializeComponents();
 	MyCharacterMovementComponent = Cast<UALSCharacterMovementComponent>(Super::GetMovementComponent());
 }
@@ -68,11 +74,16 @@ void AALSBaseCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 
 void AALSBaseCharacter::OnBreakfall_Implementation()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::OnBreakfall_Implementation);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+
 	Replicated_PlayMontage(GetRollAnimation(), 1.35);
 }
 
 void AALSBaseCharacter::Replicated_PlayMontage_Implementation(UAnimMontage* Montage, float PlayRate)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::Replicated_PlayMontage_Implementation);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
 	// Roll: Simply play a Root Motion Montage.
 	if (GetMesh()->GetAnimInstance())
 	{
@@ -84,6 +95,9 @@ void AALSBaseCharacter::Replicated_PlayMontage_Implementation(UAnimMontage* Mont
 
 void AALSBaseCharacter::BeginPlay()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::BeginPlay);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+
 	Super::BeginPlay();
 
 	// If we're in networked game, disable curved movement
@@ -125,6 +139,10 @@ void AALSBaseCharacter::BeginPlay()
 
 void AALSBaseCharacter::Tick(float DeltaTime)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::Tick);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character_Tick);
+
 	Super::Tick(DeltaTime);
 
 	// Set required values
@@ -151,6 +169,8 @@ void AALSBaseCharacter::Tick(float DeltaTime)
 
 void AALSBaseCharacter::RagdollStart()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::RagdollStart);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
 	if(GetWorld() == nullptr){return;} //- Added world Check..
 	if (RagdollStateChangedDelegate.IsBound())
 	{
@@ -196,6 +216,8 @@ void AALSBaseCharacter::RagdollStart()
 
 void AALSBaseCharacter::RagdollEnd()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::RagdollEnd);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
 	/** Re-enable Replicate Movement and if the host is a dedicated server set mesh visibility based anim
 	tick option back to default*/
 
@@ -247,11 +269,15 @@ void AALSBaseCharacter::RagdollEnd()
 
 void AALSBaseCharacter::Server_SetMeshLocationDuringRagdoll_Implementation(FVector MeshLocation)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::Server_SetMeshLocationDuringRagdoll_Implementation);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
 	TargetRagdollLocation = MeshLocation;
 }
 
 void AALSBaseCharacter::SetMovementState(const EALSMovementState NewState, bool bForce)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::SetMovementState);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
 	if (bForce || MovementState != NewState)
 	{
 		PrevMovementState = MovementState;
@@ -262,6 +288,8 @@ void AALSBaseCharacter::SetMovementState(const EALSMovementState NewState, bool 
 
 void AALSBaseCharacter::SetMovementAction(const EALSMovementAction NewAction, bool bForce)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::SetMovementAction);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
 	if (bForce || MovementAction != NewAction)
 	{
 		const EALSMovementAction Prev = MovementAction;
@@ -272,6 +300,8 @@ void AALSBaseCharacter::SetMovementAction(const EALSMovementAction NewAction, bo
 
 void AALSBaseCharacter::SetStance(const EALSStance NewStance, bool bForce)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::SetStance);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
 	if (bForce || Stance != NewStance)
 	{
 		const EALSStance Prev = Stance;
@@ -282,11 +312,15 @@ void AALSBaseCharacter::SetStance(const EALSStance NewStance, bool bForce)
 
 void AALSBaseCharacter::SetOverlayOverrideState(int32 NewState)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::SetOverlayOverrideState);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
 	OverlayOverrideState = NewState;
 }
 
 void AALSBaseCharacter::SetGait(const EALSGait NewGait, bool bForce)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::SetGait);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
 	if (bForce || Gait != NewGait)
 	{
 		const EALSGait Prev = Gait;
@@ -298,6 +332,9 @@ void AALSBaseCharacter::SetGait(const EALSGait NewGait, bool bForce)
 
 void AALSBaseCharacter::SetDesiredStance(EALSStance NewStance)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::SetDesiredStance);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+
 	DesiredStance = NewStance;
 	if (GetLocalRole() == ROLE_AutonomousProxy)
 	{
@@ -307,11 +344,16 @@ void AALSBaseCharacter::SetDesiredStance(EALSStance NewStance)
 
 void AALSBaseCharacter::Server_SetDesiredStance_Implementation(EALSStance NewStance)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::Server_SetDesiredStance_Implementation);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
 	SetDesiredStance(NewStance);
 }
 
 void AALSBaseCharacter::SetDesiredGait(const EALSGait NewGait)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::SetDesiredGait);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+
 	DesiredGait = NewGait;
 	if (GetLocalRole() == ROLE_AutonomousProxy)
 	{
@@ -321,11 +363,17 @@ void AALSBaseCharacter::SetDesiredGait(const EALSGait NewGait)
 
 void AALSBaseCharacter::Server_SetDesiredGait_Implementation(EALSGait NewGait)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::Server_SetDesiredGait_Implementation);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+
 	SetDesiredGait(NewGait);
 }
 
 void AALSBaseCharacter::SetDesiredRotationMode(EALSRotationMode NewRotMode)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::SetDesiredRotationMode);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+
 	DesiredRotationMode = NewRotMode;
 	if (GetLocalRole() == ROLE_AutonomousProxy)
 	{
@@ -335,11 +383,17 @@ void AALSBaseCharacter::SetDesiredRotationMode(EALSRotationMode NewRotMode)
 
 void AALSBaseCharacter::Server_SetDesiredRotationMode_Implementation(EALSRotationMode NewRotMode)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::Server_SetDesiredRotationMode_Implementation);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+
 	SetDesiredRotationMode(NewRotMode);
 }
 
 void AALSBaseCharacter::SetRotationMode(const EALSRotationMode NewRotationMode, bool bForce)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::SetRotationMode);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+
 	if (bForce || RotationMode != NewRotationMode)
 	{
 		const EALSRotationMode Prev = RotationMode;
@@ -356,11 +410,17 @@ void AALSBaseCharacter::SetRotationMode(const EALSRotationMode NewRotationMode, 
 
 void AALSBaseCharacter::Server_SetRotationMode_Implementation(EALSRotationMode NewRotationMode, bool bForce)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::Server_SetRotationMode_Implementation);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+
 	SetRotationMode(NewRotationMode, bForce);
 }
 
 void AALSBaseCharacter::SetViewMode(const EALSViewMode NewViewMode, bool bForce)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::SetViewMode);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+
 	if (bForce || ViewMode != NewViewMode)
 	{
 		const EALSViewMode Prev = ViewMode;
@@ -376,11 +436,17 @@ void AALSBaseCharacter::SetViewMode(const EALSViewMode NewViewMode, bool bForce)
 
 void AALSBaseCharacter::Server_SetViewMode_Implementation(EALSViewMode NewViewMode, bool bForce)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::Server_SetViewMode_Implementation);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+
 	SetViewMode(NewViewMode, bForce);
 }
 
 void AALSBaseCharacter::SetOverlayState(const EALSOverlayState NewState, bool bForce)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::SetOverlayState);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+
 	if (bForce || OverlayState != NewState)
 	{
 		const EALSOverlayState Prev = OverlayState;
@@ -396,17 +462,26 @@ void AALSBaseCharacter::SetOverlayState(const EALSOverlayState NewState, bool bF
 
 void AALSBaseCharacter::SetGroundedEntryState(EALSGroundedEntryState NewState)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::SetGroundedEntryState);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+
 	GroundedEntryState = NewState;
 }
 
 
 void AALSBaseCharacter::Server_SetOverlayState_Implementation(EALSOverlayState NewState, bool bForce)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::Server_SetOverlayState_Implementation);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+
 	SetOverlayState(NewState, bForce);
 }
 
 void AALSBaseCharacter::EventOnLanded()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::EventOnLanded);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+
 	const float VelZ = FMath::Abs(GetCharacterMovement()->Velocity.Z);
 
 	if (bRagdollOnLand && VelZ > RagdollOnLandVelocity)
@@ -498,6 +573,9 @@ void AALSBaseCharacter::SetActorLocationAndTargetRotation(FVector NewLocation, F
 
 void AALSBaseCharacter::SetMovementModel()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::SetMovementModel);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+
 	if (ensureMsgf(!MovementModel.IsNull(), TEXT("Did you forget to fill in MovementModel information?")))
 	{
 		const FString ContextString = GetFullName();
@@ -513,6 +591,9 @@ void AALSBaseCharacter::SetMovementModel()
 
 void AALSBaseCharacter::ForceUpdateCharacterState()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::ForceUpdateCharacterState);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+
 	SetGait(DesiredGait, true);
 	SetStance(DesiredStance, true);
 	SetRotationMode(DesiredRotationMode, true);
@@ -524,6 +605,9 @@ void AALSBaseCharacter::ForceUpdateCharacterState()
 
 FALSMovementSettings AALSBaseCharacter::GetTargetMovementSettings() const
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::GetTargetMovementSettings);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+
 	if (RotationMode == EALSRotationMode::VelocityDirection)
 	{
 		if (Stance == EALSStance::Standing)
@@ -564,6 +648,9 @@ FALSMovementSettings AALSBaseCharacter::GetTargetMovementSettings() const
 
 bool AALSBaseCharacter::CanSprint() const
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::CanSprint);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+
 	// Determine if the character is currently able to sprint based on the Rotation mode and current acceleration
 	// (input) rotation. If the character is in the Looking Rotation mode, only allow sprinting if there is full
 	// movement input and it is faced forward relative to the camera + or - 50 degrees.
@@ -599,7 +686,10 @@ FVector AALSBaseCharacter::GetMovementInput() const
 
 float AALSBaseCharacter::GetAnimCurveValue(FName CurveName) const
 {
-	if (GetMesh()->GetAnimInstance())
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::GetAnimCurveValue);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+
+	if(GetMesh() != nullptr && GetMesh()->GetAnimInstance())
 	{
 		return GetMesh()->GetAnimInstance()->GetCurveValue(CurveName);
 	}
@@ -662,6 +752,9 @@ void AALSBaseCharacter::GetCameraParameters(float& TPFOVOut, float& FPFOVOut, bo
 
 void AALSBaseCharacter::RagdollUpdate(float DeltaTime)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::RagdollUpdate);
+    SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+
 	GetMesh()->bOnlyAllowAutonomousTickPose = false;
 
 	// Set the Last Ragdoll Velocity.
@@ -686,6 +779,9 @@ void AALSBaseCharacter::RagdollUpdate(float DeltaTime)
 
 void AALSBaseCharacter::SetActorLocationDuringRagdoll(float DeltaTime)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::SetActorLocationDuringRagdoll);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+
 	if (IsLocallyControlled())
 	{
 		// Set the pelvis as the target location.
@@ -759,6 +855,9 @@ void AALSBaseCharacter::SetActorLocationDuringRagdoll(float DeltaTime)
 
 void AALSBaseCharacter::OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::OnMovementModeChanged);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+
 	Super::OnMovementModeChanged(PrevMovementMode, PreviousCustomMode);
 
 	// Use the Character Movement Mode changes to set the Movement States to the right values. This allows you to have
@@ -955,6 +1054,9 @@ void AALSBaseCharacter::OnLandFrictionReset()
 
 void AALSBaseCharacter::SetEssentialValues(float DeltaTime)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::SetEssentialValues);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+
 	if (GetLocalRole() != ROLE_SimulatedProxy)
 	{
 		ReplicatedCurrentAcceleration = GetCharacterMovement()->GetCurrentAcceleration();
@@ -1011,6 +1113,9 @@ void AALSBaseCharacter::SetEssentialValues(float DeltaTime)
 
 void AALSBaseCharacter::UpdateCharacterMovement()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::UpdateCharacterMovement);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+
 	// Set the Allowed Gait
 	const EALSGait AllowedGait = GetAllowedGait();
 
@@ -1029,6 +1134,9 @@ void AALSBaseCharacter::UpdateCharacterMovement()
 
 void AALSBaseCharacter::UpdateGroundedRotation(float DeltaTime)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::UpdateGroundedRotation);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+
 	if (MovementAction == EALSMovementAction::None)
 	{
 		const bool bCanUpdateMovingRot = ((bIsMoving && bHasMovementInput) || Speed > 150.0f) && !HasAnyRootMotion();
@@ -1109,6 +1217,9 @@ void AALSBaseCharacter::UpdateGroundedRotation(float DeltaTime)
 
 void AALSBaseCharacter::UpdateInAirRotation(float DeltaTime)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::UpdateInAirRotation);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+
 	if (RotationMode == EALSRotationMode::VelocityDirection || RotationMode == EALSRotationMode::LookingDirection)
 	{
 		// Velocity / Looking Direction Rotation

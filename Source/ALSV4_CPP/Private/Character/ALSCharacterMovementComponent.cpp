@@ -7,6 +7,9 @@
 
 #include "Curves/CurveVector.h"
 
+DECLARE_CYCLE_STAT(TEXT("ALS Movement Comp (All Functions)"), STATGROUP_ALS_Movement, STATGROUP_ALS);
+
+
 UALSCharacterMovementComponent::UALSCharacterMovementComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -15,6 +18,9 @@ UALSCharacterMovementComponent::UALSCharacterMovementComponent(const FObjectInit
 void UALSCharacterMovementComponent::OnMovementUpdated(float DeltaTime, const FVector& OldLocation,
                                                        const FVector& OldVelocity)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterMovementComponent::OnMovementUpdated);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement);
+
 	Super::OnMovementUpdated(DeltaTime, OldLocation, OldVelocity);
 
 	if (!CharacterOwner)
@@ -35,6 +41,9 @@ void UALSCharacterMovementComponent::OnMovementUpdated(float DeltaTime, const FV
 
 void UALSCharacterMovementComponent::PhysWalking(float deltaTime, int32 Iterations)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterMovementComponent::PhysWalking);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement);
+
 	if (CurrentMovementSettings.MovementCurve)
 	{
 		// Update the Ground Friction using the Movement Curve.
@@ -46,6 +55,9 @@ void UALSCharacterMovementComponent::PhysWalking(float deltaTime, int32 Iteratio
 
 float UALSCharacterMovementComponent::GetMaxAcceleration() const
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterMovementComponent::GetMaxAcceleration);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement);
+
 	// Update the Acceleration using the Movement Curve.
 	// This allows for fine control over movement behavior at each speed.
 	if (!IsMovingOnGround() || !CurrentMovementSettings.MovementCurve)
@@ -57,6 +69,9 @@ float UALSCharacterMovementComponent::GetMaxAcceleration() const
 
 float UALSCharacterMovementComponent::GetMaxBrakingDeceleration() const
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterMovementComponent::GetMaxBrakingDeceleration);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement);
+
 	// Update the Deceleration using the Movement Curve.
 	// This allows for fine control over movement behavior at each speed.
 	if (!IsMovingOnGround() || !CurrentMovementSettings.MovementCurve)
@@ -68,6 +83,9 @@ float UALSCharacterMovementComponent::GetMaxBrakingDeceleration() const
 
 void UALSCharacterMovementComponent::UpdateFromCompressedFlags(uint8 Flags) // Client only
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterMovementComponent::UpdateFromCompressedFlags);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement);
+
 	Super::UpdateFromCompressedFlags(Flags);
 
 	bRequestMovementSettingsChange = (Flags & FSavedMove_Character::FLAG_Custom_0) != 0;
@@ -75,6 +93,9 @@ void UALSCharacterMovementComponent::UpdateFromCompressedFlags(uint8 Flags) // C
 
 class FNetworkPredictionData_Client* UALSCharacterMovementComponent::GetPredictionData_Client() const
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterMovementComponent::GetPredictionData_Client);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement);
+
 	check(PawnOwner != nullptr);
 
 	if (!ClientPredictionData)
@@ -91,6 +112,9 @@ class FNetworkPredictionData_Client* UALSCharacterMovementComponent::GetPredicti
 
 void UALSCharacterMovementComponent::FSavedMove_My::Clear()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterMovementComponent::FSavedMove_My::Clear);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement);
+
 	Super::Clear();
 
 	bSavedRequestMovementSettingsChange = false;
@@ -99,6 +123,9 @@ void UALSCharacterMovementComponent::FSavedMove_My::Clear()
 
 uint8 UALSCharacterMovementComponent::FSavedMove_My::GetCompressedFlags() const
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterMovementComponent::FSavedMove_My::GetCompressedFlags);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement);
+
 	uint8 Result = Super::GetCompressedFlags();
 
 	if (bSavedRequestMovementSettingsChange)
@@ -114,6 +141,9 @@ void UALSCharacterMovementComponent::FSavedMove_My::SetMoveFor(ACharacter* Chara
                                                                class FNetworkPredictionData_Client_Character&
                                                                ClientData)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterMovementComponent::FSavedMove_My::SetMoveFor);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement);
+
 	Super::SetMoveFor(Character, InDeltaTime, NewAccel, ClientData);
 
 	UALSCharacterMovementComponent* CharacterMovement = Cast<UALSCharacterMovementComponent>(Character->GetCharacterMovement());
@@ -126,6 +156,9 @@ void UALSCharacterMovementComponent::FSavedMove_My::SetMoveFor(ACharacter* Chara
 
 void UALSCharacterMovementComponent::FSavedMove_My::PrepMoveFor(ACharacter* Character)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterMovementComponent::FSavedMove_My::PrepMoveFor);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement);
+
 	Super::PrepMoveFor(Character);
 
 	UALSCharacterMovementComponent* CharacterMovement = Cast<UALSCharacterMovementComponent>(Character->GetCharacterMovement());
@@ -153,6 +186,9 @@ void UALSCharacterMovementComponent::Server_SetAllowedGait_Implementation(const 
 
 float UALSCharacterMovementComponent::GetMappedSpeed() const
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterMovementComponent::GetMappedSpeed);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement);
+
 	// Map the character's current speed to the configured movement speeds with a range of 0-3,
 	// with 0 = stopped, 1 = the Walk Speed, 2 = the Run Speed, and 3 = the Sprint Speed.
 	// This allows us to vary the movement speeds but still use the mapped range in calculations for consistent results
@@ -177,6 +213,9 @@ float UALSCharacterMovementComponent::GetMappedSpeed() const
 
 void UALSCharacterMovementComponent::SetMovementSettings(FALSMovementSettings NewMovementSettings)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterMovementComponent::SetMovementSettings);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement);
+
 	// Set the current movement settings from the owner
 	CurrentMovementSettings = NewMovementSettings;
 	bRequestMovementSettingsChange = true;
@@ -184,6 +223,9 @@ void UALSCharacterMovementComponent::SetMovementSettings(FALSMovementSettings Ne
 
 void UALSCharacterMovementComponent::SetAllowedGait(EALSGait NewAllowedGait)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterMovementComponent::SetAllowedGait);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement);
+
 	if (AllowedGait != NewAllowedGait)
 	{
 		if (PawnOwner->IsLocallyControlled())

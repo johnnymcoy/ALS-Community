@@ -5,6 +5,7 @@
 
 #include "CoreMinimal.h"
 #include "Animation/AnimInstance.h"
+#include "Interfaces/CustomAnimInstance.h"
 #include "Library/ALSAnimationStructLibrary.h"
 #include "Library/ALSStructEnumLibrary.h"
 
@@ -21,7 +22,7 @@ class UCurveVector;
  * Main anim instance class for character
  */
 UCLASS(Blueprintable, BlueprintType)
-class ALSV4_CPP_API UALSCharacterAnimInstance : public UAnimInstance
+class ALSV4_CPP_API UALSCharacterAnimInstance : public UAnimInstance, public ICustomAnimInstance
 {
 	GENERATED_BODY()
 
@@ -31,6 +32,7 @@ public:
 	virtual void NativeBeginPlay() override;
 
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
+	virtual void NativeThreadSafeUpdateAnimation(float DeltaSeconds) override;
 
 	UFUNCTION(BlueprintCallable, Category = "ALS|Animation")
 	void PlayTransition(const FALSDynamicMontageParams& Parameters);
@@ -46,6 +48,25 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "ALS|Event")
 	void OnPivot();
+
+
+	//~		Custom Anim Instance	~//
+	
+	/** For Setting the characters blind fire	*/
+	virtual void SetFiringWeapon(const bool bValue) override;
+	/** Setting The Location and Rotation of the Recoil	*/
+	virtual void SetRecoilTransform(const FTransform& Transform) override;
+	/** Setting the Pivot Point for the Gun to Rotate Around when Recoiling*/
+	virtual void SetPivotPoint(const FTransform& Transform) override;
+	/** For When the feet get stuck and need disabling	*/
+	virtual void DisableFootIK(const float DelayTime) override;
+	
+	//~		Custom Anim Instance	~//
+	UFUNCTION(BlueprintImplementableEvent, Category="Custom ALS")
+	void OnDisableFootIK(const float DelayTime);
+	UFUNCTION(BlueprintCallable, Category="Custom ALS")
+	bool GetFiringWeapon() const{return bFiringWeapon;};
+
 
 protected:
 
@@ -288,6 +309,19 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Configuration|Anim Graph - Foot IK")
 	FName IkFootR_BoneName = FName(TEXT("ik_foot_r"));
 
+
+	//~ Custom Anim Vars	~//
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Read Only Data|Anim Graph - Recoil")
+	FVector GunOffset = FVector::ZeroVector;
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Read Only Data|Anim Graph - Recoil")
+	FTransform RecoilTransform;
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Read Only Data|Anim Graph - Recoil")
+	FTransform PivotPoint;
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Read Only Data|Anim Graph - Recoil")
+	bool bFiringWeapon = false;
+	//~ Custom Anim Vars	~//
+
+
 private:
 	FTimerHandle OnPivotTimer;
 
@@ -299,4 +333,6 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<UALSDebugComponent> ALSDebugComponent = nullptr;
+
+
 };

@@ -27,6 +27,8 @@ const FName NAME_PivotOffset_Z(TEXT("PivotOffset_Z"));
 const FName NAME_RotationLagSpeed(TEXT("RotationLagSpeed"));
 const FName NAME_Weight_FirstPerson(TEXT("Weight_FirstPerson"));
 
+DECLARE_CYCLE_STAT(TEXT("ALS Camera Manager (All Functions)"), STATGROUP_ALS_Camera_Manager, STATGROUP_ALS);
+
 
 AALSPlayerCameraManager::AALSPlayerCameraManager()
 {
@@ -37,6 +39,9 @@ AALSPlayerCameraManager::AALSPlayerCameraManager()
 
 void AALSPlayerCameraManager::OnPossess(AALSBaseCharacter* NewCharacter)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSPlayerCameraManager::OnPossess);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Camera_Manager);
+
 	// Set "Controlled Pawn" when Player Controller Possesses new character. (called from Player Controller)
 	check(NewCharacter);
 	ControlledCharacter = NewCharacter;
@@ -65,6 +70,9 @@ void AALSPlayerCameraManager::OnPossess(AALSBaseCharacter* NewCharacter)
 
 float AALSPlayerCameraManager::GetCameraBehaviorParam(FName CurveName) const
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSPlayerCameraManager::GetCameraBehaviorParam);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Camera_Manager);
+
 	UAnimInstance* Inst = CameraBehavior->GetAnimInstance();
 	if (Inst)
 	{
@@ -75,6 +83,9 @@ float AALSPlayerCameraManager::GetCameraBehaviorParam(FName CurveName) const
 
 void AALSPlayerCameraManager::UpdateViewTargetInternal(FTViewTarget& OutVT, float DeltaTime)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSPlayerCameraManager::UpdateViewTargetInternal);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Camera_Manager);
+
 	// Partially taken from base class
 
 	if (OutVT.Target)
@@ -107,6 +118,9 @@ FVector AALSPlayerCameraManager::CalculateAxisIndependentLag(FVector CurrentLoca
                                                              FRotator CameraRotation, FVector LagSpeeds,
                                                              float DeltaTime)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSPlayerCameraManager::CalculateAxisIndependentLag);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Camera_Manager);
+
 	CameraRotation.Roll = 0.0f;
 	CameraRotation.Pitch = 0.0f;
 	const FVector UnrotatedCurLoc = CameraRotation.UnrotateVector(CurrentLocation);
@@ -122,6 +136,9 @@ FVector AALSPlayerCameraManager::CalculateAxisIndependentLag(FVector CurrentLoca
 
 bool AALSPlayerCameraManager::CustomCameraBehavior(float DeltaTime, FVector& Location, FRotator& Rotation, float& FOV)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSPlayerCameraManager::CustomCameraBehavior);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Camera_Manager);
+
 	if (!ControlledCharacter)
 	{
 		return false;
