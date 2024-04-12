@@ -35,6 +35,10 @@
 		{
 			"Name": "EnhancedInput",
 			"Enabled": true
+		},
+		{
+			"Name": "BaseHelpers",
+			"Enabled": true
 		}
 	]
 }

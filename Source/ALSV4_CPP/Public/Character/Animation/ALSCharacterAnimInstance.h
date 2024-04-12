@@ -310,7 +310,7 @@ public:
 	FName IkFootR_BoneName = FName(TEXT("ik_foot_r"));
 
 
-	//~ Custom Anim Vars	~//
+	//~		Custom Anim Vars	~//
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Read Only Data|Anim Graph - Recoil")
 	FVector GunOffset = FVector::ZeroVector;
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Read Only Data|Anim Graph - Recoil")
@@ -319,7 +319,7 @@ public:
 	FTransform PivotPoint;
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Read Only Data|Anim Graph - Recoil")
 	bool bFiringWeapon = false;
-	//~ Custom Anim Vars	~//
+	//~		Custom Anim Vars	~//
 
 
 private:

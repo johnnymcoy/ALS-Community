@@ -109,6 +109,8 @@ void UALSCharacterAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	OverlayState = Character->GetOverlayState();
 	GroundedEntryState = Character->GetGroundedEntryState();
 
+	
+
 	UpdateAimingValues(DeltaSeconds);
 	UpdateLayerValues();
 	UpdateFootIK(DeltaSeconds);
