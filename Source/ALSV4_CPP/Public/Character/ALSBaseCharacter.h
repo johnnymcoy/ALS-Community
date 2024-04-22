@@ -10,7 +10,7 @@
 #include "Library/ALSCharacterStructLibrary.h"
 #include "Engine/DataTable.h"
 #include "GameFramework/Character.h"
-
+#include "Interfaces/ALSCharacterInterface.h"
 #include "ALSBaseCharacter.generated.h"
 
 // forward declarations
@@ -27,7 +27,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FRagdollStateChangedSignature, bool,
  * Base character class
  */
 UCLASS(BlueprintType)
-class ALSV4_CPP_API AALSBaseCharacter : public ACharacter
+class ALSV4_CPP_API AALSBaseCharacter : public ACharacter, public IALSCharacterInterface
 {
 	GENERATED_BODY()
 
@@ -39,6 +39,17 @@ public:
 	{
 		return MyCharacterMovementComponent;
 	}
+	
+	FORCEINLINE virtual IALSCharacterMovementInterface* GetALSCharacterMovementInterface() const override
+	{
+		return Cast<IALSCharacterMovementInterface>(MyCharacterMovementComponent);
+	}
+	FORCEINLINE virtual IALSGravityMovementInterface* GetALSGravityMovementInterface() const override
+	{
+		return Cast<IALSGravityMovementInterface>(MyCharacterMovementComponent);
+	}
+
+
 
 	virtual void Tick(float DeltaTime) override;
 

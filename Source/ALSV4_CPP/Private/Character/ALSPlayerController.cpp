@@ -54,25 +54,23 @@ void AALSPlayerController::OnRep_Pawn()
 void AALSPlayerController::SetupInputComponent()
 {
 	Super::SetupInputComponent();
-
-	UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(InputComponent);
-	if (EnhancedInputComponent)
-	{
-		EnhancedInputComponent->ClearActionEventBindings();
-		EnhancedInputComponent->ClearActionValueBindings();
-		EnhancedInputComponent->ClearDebugKeyBindings();
-
-		BindActions(DefaultInputMappingContext);
-		BindActions(DebugInputMappingContext);
-	}
-	else
-	{
-		UE_LOG(LogTemp, Fatal, TEXT("ALS Community requires Enhanced Input System to be activated in project settings to function properly"));
-	}
+	//! Overridden in Custom Player Controller 
+	// UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(InputComponent);
+	// if(EnhancedInputComponent == nullptr)
+	// {
+	// 	UE_LOG(LogTemp, Fatal, TEXT("ALS Community requires Enhanced Input System to be activated in project settings to function properly"));
+	// 	return;
+	// }
+	// EnhancedInputComponent->ClearActionEventBindings();
+	// EnhancedInputComponent->ClearActionValueBindings();
+	// EnhancedInputComponent->ClearDebugKeyBindings();
+	// BindActions(DefaultInputMappingContext);
+	// BindActions(DebugInputMappingContext);
 }
 
 void AALSPlayerController::BindActions(UInputMappingContext* Context)
 {
+	Super::BindActions(Context);
 	if (Context)
 	{
 		const TArray<FEnhancedActionKeyMapping>& Mappings = Context->GetMappings();
@@ -95,6 +93,7 @@ void AALSPlayerController::BindActions(UInputMappingContext* Context)
 
 void AALSPlayerController::SetupInputs()
 {
+	Super::SetupInputs();
 	if (PossessedCharacter)
 	{
 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))

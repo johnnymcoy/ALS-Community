@@ -4,15 +4,43 @@
 
 #include "Character/ALSCharacterMovementComponent.h"
 #include "Character/ALSBaseCharacter.h"
+#include "Components/SplineComponent.h"
 
 #include "Curves/CurveVector.h"
+#include "Library/ALSExtraData.h"
 
 DECLARE_CYCLE_STAT(TEXT("ALS Movement Comp (All Functions)"), STATGROUP_ALS_Movement, STATGROUP_ALS);
+DECLARE_CYCLE_STAT(TEXT("ALS Movement Comp (All Gravity Funcs)"), STATGROUP_ALS_Movement_Gravity, STATGROUP_ALS);
 
 
 UALSCharacterMovementComponent::UALSCharacterMovementComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+
+	// NetworkSmoothingMode = ENetworkSmoothingMode::Disabled;
+	// RotationRate = FRotator(360.0f, 360.0f, 360.0f);
+
+	// bAlignComponentToFloor = false;
+	// bAlignComponentToGravity = false;
+	// bAlignGravityToBase = false;
+	// bAlwaysRotateAroundCenter = false;
+	// bApplyingNetworkMovementMode = false;
+	bDirtyGravityDirection = false;
+	bDisableGravityReplication = false;
+	// bForceSimulateMovement = false;
+	// bIgnoreOtherGravityScales = false;
+	// bLandOnAnySurface = false;
+	// bRevertToDefaultGravity = false;
+	// bRotateVelocityOnGround = false;
+	// bTriggerUnwalkableHits = false;
+	GravityActor = nullptr;
+	GravityDirectionMode = EGravityDirectionMode::Fixed;
+	GravityVectorA = FVector::DownVector;
+	GravityVectorB = FVector::ZeroVector;
+	// LastUnwalkableHitTime = -1.0f;
+	OldGravityScale = GravityScale;
+	// SetThresholdParallelAngle(1.0f);
+
 }
 
 void UALSCharacterMovementComponent::OnMovementUpdated(float DeltaTime, const FVector& OldLocation,
@@ -23,6 +51,7 @@ void UALSCharacterMovementComponent::OnMovementUpdated(float DeltaTime, const FV
 
 	Super::OnMovementUpdated(DeltaTime, OldLocation, OldVelocity);
 
+	
 	if (!CharacterOwner)
 	{
 		return;
@@ -37,6 +66,15 @@ void UALSCharacterMovementComponent::OnMovementUpdated(float DeltaTime, const FV
 
 		bRequestMovementSettingsChange = false;
 	}
+
+	
+	//~ Gravity Functions	//
+	UpdateGravity();
+	if(GetShouldReplicateGravity())
+	{
+		ReplicateGravityToClients();
+	}
+
 }
 
 void UALSCharacterMovementComponent::PhysWalking(float deltaTime, int32 Iterations)
@@ -246,3 +284,759 @@ void UALSCharacterMovementComponent::SetAllowedGait(EALSGait NewAllowedGait)
 		}
 	}
 }
+
+////-																				//
+//-								Gravity									        	//
+//-																					//
+
+
+void UALSCharacterMovementComponent::SetFixedGravityDirection(const FVector& NewFixedGravityDirection)
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement_Gravity);
+	if (NewFixedGravityDirection.IsZero() ||
+	(GravityDirectionMode == EGravityDirectionMode::Fixed &&
+	GravityVectorA == NewFixedGravityDirection))
+	{
+		return;
+	}
+
+	const EGravityDirectionMode OldGravityDirectionMode = GravityDirectionMode;
+
+	bDirtyGravityDirection = true;
+	GravityDirectionMode = EGravityDirectionMode::Fixed;
+	GravityVectorA = NewFixedGravityDirection;
+
+	GravityDirectionChanged(OldGravityDirectionMode);
+
+
+}
+
+void UALSCharacterMovementComponent::MulticastSetFixedGravityDirection_Implementation(
+	const FVector& NewFixedGravityDirection)
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement_Gravity);
+	if (GravityDirectionMode == EGravityDirectionMode::Fixed &&
+	GravityVectorA == NewFixedGravityDirection)
+	{
+		return;
+	}
+
+	const EGravityDirectionMode OldGravityDirectionMode = GravityDirectionMode;
+
+	GravityDirectionMode = EGravityDirectionMode::Fixed;
+	GravityVectorA = NewFixedGravityDirection;
+
+	GravityDirectionChanged(OldGravityDirectionMode);
+
+}
+
+void UALSCharacterMovementComponent::SetSplineTangentGravityDirection(AActor* NewGravityActor)
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement_Gravity);
+	if (NewGravityActor == nullptr ||
+		(GravityDirectionMode == EGravityDirectionMode::SplineTangent &&
+		GravityActor == NewGravityActor))
+	{
+		return;
+	}
+
+	const USplineComponent* Spline = Cast<USplineComponent>(
+		NewGravityActor->GetComponentByClass(USplineComponent::StaticClass()));
+	if (Spline != nullptr)
+	{
+		const EGravityDirectionMode OldGravityDirectionMode = GravityDirectionMode;
+
+		bDirtyGravityDirection = true;
+		GravityDirectionMode = EGravityDirectionMode::SplineTangent;
+		GravityActor = NewGravityActor;
+
+		GravityDirectionChanged(OldGravityDirectionMode);
+	}
+
+}
+
+void UALSCharacterMovementComponent::MulticastSetSplineTangentGravityDirection_Implementation(AActor* NewGravityActor)
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement_Gravity);
+	if (GravityDirectionMode == EGravityDirectionMode::SplineTangent &&
+		GravityActor == NewGravityActor)
+	{
+		return;
+	}
+
+	const EGravityDirectionMode OldGravityDirectionMode = GravityDirectionMode;
+
+	GravityDirectionMode = EGravityDirectionMode::SplineTangent;
+	GravityActor = NewGravityActor;
+
+	GravityDirectionChanged(OldGravityDirectionMode);
+
+}
+
+void UALSCharacterMovementComponent::SetPointGravityDirection(const FVector& NewGravityPoint)
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement_Gravity);
+	if (GravityDirectionMode == EGravityDirectionMode::Point &&
+		GravityVectorA == NewGravityPoint)
+	{
+		return;
+	}
+
+	const EGravityDirectionMode OldGravityDirectionMode = GravityDirectionMode;
+
+	bDirtyGravityDirection = true;
+	GravityDirectionMode = EGravityDirectionMode::Point;
+	GravityVectorA = NewGravityPoint;
+	GravityActor = nullptr;
+
+	GravityDirectionChanged(OldGravityDirectionMode);
+
+}
+
+void UALSCharacterMovementComponent::MulticastSetPointGravityDirection_Implementation(const FVector& NewGravityPoint)
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement_Gravity);
+	if (GravityDirectionMode == EGravityDirectionMode::Point &&
+		GravityVectorA == NewGravityPoint)
+	{
+		return;
+	}
+
+	const EGravityDirectionMode OldGravityDirectionMode = GravityDirectionMode;
+
+	GravityDirectionMode = EGravityDirectionMode::Point;
+	GravityVectorA = NewGravityPoint;
+	GravityActor = nullptr;
+
+	GravityDirectionChanged(OldGravityDirectionMode);
+
+}
+
+void UALSCharacterMovementComponent::SetPointGravityDirectionFromActor(AActor* NewGravityActor)
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement_Gravity);
+	if (GravityDirectionMode == EGravityDirectionMode::Point &&
+		GravityActor == NewGravityActor)
+	{
+		return;
+	}
+
+	const EGravityDirectionMode OldGravityDirectionMode = GravityDirectionMode;
+
+	bDirtyGravityDirection = true;
+	GravityDirectionMode = EGravityDirectionMode::Point;
+	GravityActor = NewGravityActor;
+
+	GravityDirectionChanged(OldGravityDirectionMode);
+
+}
+
+
+void UALSCharacterMovementComponent::MulticastSetPointGravityDirectionFromActor_Implementation(AActor* NewGravityActor)
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement_Gravity);
+	if (GravityDirectionMode == EGravityDirectionMode::Point &&
+		GravityActor == NewGravityActor)
+	{
+		return;
+	}
+
+	const EGravityDirectionMode OldGravityDirectionMode = GravityDirectionMode;
+
+	GravityDirectionMode = EGravityDirectionMode::Point;
+	GravityActor = NewGravityActor;
+
+	GravityDirectionChanged(OldGravityDirectionMode);
+
+}
+
+
+
+void UALSCharacterMovementComponent::SetLineGravityDirection(const FVector& NewGravityLineStart,
+	const FVector& NewGravityLineEnd)
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement_Gravity);
+	if (NewGravityLineStart == NewGravityLineEnd ||
+		(GravityDirectionMode == EGravityDirectionMode::Line &&
+		GravityVectorA == NewGravityLineStart && GravityVectorB == NewGravityLineEnd))
+	{
+		return;
+	}
+
+	const EGravityDirectionMode OldGravityDirectionMode = GravityDirectionMode;
+
+	bDirtyGravityDirection = true;
+	GravityDirectionMode = EGravityDirectionMode::Line;
+	GravityVectorA = NewGravityLineStart;
+	GravityVectorB = NewGravityLineEnd;
+
+	GravityDirectionChanged(OldGravityDirectionMode);
+
+}
+
+void UALSCharacterMovementComponent::MulticastSetLineGravityDirection_Implementation(const FVector& NewGravityLineStart,
+																					 const FVector& NewGravityLineEnd)
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement_Gravity);
+	if (GravityDirectionMode == EGravityDirectionMode::Line &&
+	GravityVectorA == NewGravityLineStart && GravityVectorB == NewGravityLineEnd)
+	{
+		return;
+	}
+
+	const EGravityDirectionMode OldGravityDirectionMode = GravityDirectionMode;
+
+	GravityDirectionMode = EGravityDirectionMode::Line;
+	GravityVectorA = NewGravityLineStart;
+	GravityVectorB = NewGravityLineEnd;
+
+	GravityDirectionChanged(OldGravityDirectionMode);
+
+}
+
+
+void UALSCharacterMovementComponent::SetSegmentGravityDirection(const FVector& NewGravitySegmentStart,
+	const FVector& NewGravitySegmentEnd)
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement_Gravity);
+	if (NewGravitySegmentStart == NewGravitySegmentEnd ||
+	(GravityDirectionMode == EGravityDirectionMode::Segment &&
+	GravityVectorA == NewGravitySegmentStart && GravityVectorB == NewGravitySegmentEnd))
+	{
+		return;
+	}
+
+	const EGravityDirectionMode OldGravityDirectionMode = GravityDirectionMode;
+
+	bDirtyGravityDirection = true;
+	GravityDirectionMode = EGravityDirectionMode::Segment;
+	GravityVectorA = NewGravitySegmentStart;
+	GravityVectorB = NewGravitySegmentEnd;
+
+	GravityDirectionChanged(OldGravityDirectionMode);
+
+
+}
+
+void UALSCharacterMovementComponent::MulticastSetSegmentGravityDirection_Implementation(
+	const FVector& NewGravitySegmentStart, const FVector& NewGravitySegmentEnd)
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement_Gravity);
+	if (GravityDirectionMode == EGravityDirectionMode::Segment &&
+	GravityVectorA == NewGravitySegmentStart && GravityVectorB == NewGravitySegmentEnd)
+	{
+		return;
+	}
+
+	const EGravityDirectionMode OldGravityDirectionMode = GravityDirectionMode;
+
+	GravityDirectionMode = EGravityDirectionMode::Segment;
+	GravityVectorA = NewGravitySegmentStart;
+	GravityVectorB = NewGravitySegmentEnd;
+
+	GravityDirectionChanged(OldGravityDirectionMode);
+
+}
+
+
+void UALSCharacterMovementComponent::SetSplineGravityDirection(AActor* NewGravityActor)
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement_Gravity);
+	if (NewGravityActor == nullptr ||
+	(GravityDirectionMode == EGravityDirectionMode::Spline &&
+	GravityActor == NewGravityActor))
+	{
+		return;
+	}
+
+	const USplineComponent* Spline = Cast<USplineComponent>(
+		NewGravityActor->GetComponentByClass(USplineComponent::StaticClass()));
+	if (Spline != nullptr)
+	{
+		const EGravityDirectionMode OldGravityDirectionMode = GravityDirectionMode;
+
+		bDirtyGravityDirection = true;
+		GravityDirectionMode = EGravityDirectionMode::Spline;
+		GravityActor = NewGravityActor;
+
+		GravityDirectionChanged(OldGravityDirectionMode);
+	}
+
+
+}
+
+void UALSCharacterMovementComponent::MulticastSetSplineGravityDirection_Implementation(AActor* NewGravityActor)
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement_Gravity);
+	if (GravityDirectionMode == EGravityDirectionMode::Spline &&
+	GravityActor == NewGravityActor)
+	{
+		return;
+	}
+
+	const EGravityDirectionMode OldGravityDirectionMode = GravityDirectionMode;
+
+	GravityDirectionMode = EGravityDirectionMode::Spline;
+	GravityActor = NewGravityActor;
+
+	GravityDirectionChanged(OldGravityDirectionMode);
+
+}
+
+void UALSCharacterMovementComponent::SetPlaneGravityDirection(const FVector& NewGravityPlaneBase,
+	const FVector& NewGravityPlaneNormal)
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement_Gravity);
+	if (NewGravityPlaneNormal.IsZero() ||
+	(GravityDirectionMode == EGravityDirectionMode::Plane &&
+	GravityVectorA == NewGravityPlaneBase && GravityVectorB == NewGravityPlaneNormal))
+	{
+		return;
+	}
+
+	const EGravityDirectionMode OldGravityDirectionMode = GravityDirectionMode;
+
+	bDirtyGravityDirection = true;
+	GravityDirectionMode = EGravityDirectionMode::Plane;
+	GravityVectorA = NewGravityPlaneBase;
+	GravityVectorB = NewGravityPlaneNormal;
+
+	GravityDirectionChanged(OldGravityDirectionMode);
+
+
+}
+
+void UALSCharacterMovementComponent::MulticastSetPlaneGravityDirection_Implementation(
+	const FVector& NewGravityPlaneBase, const FVector& NewGravityPlaneNormal)
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement_Gravity);
+	if (GravityDirectionMode == EGravityDirectionMode::Plane &&
+	GravityVectorA == NewGravityPlaneBase && GravityVectorB == NewGravityPlaneNormal)
+	{
+		return;
+	}
+
+	const EGravityDirectionMode OldGravityDirectionMode = GravityDirectionMode;
+
+	GravityDirectionMode = EGravityDirectionMode::Plane;
+	GravityVectorA = NewGravityPlaneBase;
+	GravityVectorB = NewGravityPlaneNormal;
+
+	GravityDirectionChanged(OldGravityDirectionMode);
+
+}
+
+
+void UALSCharacterMovementComponent::SetSplinePlaneGravityDirection(AActor* NewGravityActor)
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement_Gravity);
+	if (NewGravityActor == nullptr ||
+	(GravityDirectionMode == EGravityDirectionMode::SplinePlane &&
+	GravityActor == NewGravityActor))
+	{
+		return;
+	}
+
+	const USplineComponent* Spline = Cast<USplineComponent>(
+		NewGravityActor->GetComponentByClass(USplineComponent::StaticClass()));
+	if (Spline != nullptr)
+	{
+		const EGravityDirectionMode OldGravityDirectionMode = GravityDirectionMode;
+
+		bDirtyGravityDirection = true;
+		GravityDirectionMode = EGravityDirectionMode::SplinePlane;
+		GravityActor = NewGravityActor;
+
+		GravityDirectionChanged(OldGravityDirectionMode);
+	}
+
+
+}
+
+void UALSCharacterMovementComponent::MulticastSetSplinePlaneGravityDirection_Implementation(AActor* NewGravityActor)
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement_Gravity);
+	if (GravityDirectionMode == EGravityDirectionMode::SplinePlane &&
+	GravityActor == NewGravityActor)
+	{
+		return;
+	}
+
+	const EGravityDirectionMode OldGravityDirectionMode = GravityDirectionMode;
+
+	GravityDirectionMode = EGravityDirectionMode::SplinePlane;
+	GravityActor = NewGravityActor;
+
+	GravityDirectionChanged(OldGravityDirectionMode);
+
+}
+
+
+
+void UALSCharacterMovementComponent::SetBoxGravityDirection(const FVector& NewGravityBoxOrigin,
+	const FVector& NewGravityBoxExtent)
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement_Gravity);
+	if (GravityDirectionMode == EGravityDirectionMode::Box &&
+	GravityVectorA == NewGravityBoxOrigin && GravityVectorB == NewGravityBoxExtent)
+	{
+		return;
+	}
+
+	const EGravityDirectionMode OldGravityDirectionMode = GravityDirectionMode;
+
+	bDirtyGravityDirection = true;
+	GravityDirectionMode = EGravityDirectionMode::Box;
+	GravityVectorA = NewGravityBoxOrigin;
+	GravityVectorB = NewGravityBoxExtent;
+	GravityActor = nullptr;
+
+	GravityDirectionChanged(OldGravityDirectionMode);
+
+
+}
+
+void UALSCharacterMovementComponent::MulticastSetBoxGravityDirection_Implementation(const FVector& NewGravityBoxOrigin,
+																					const FVector& NewGravityBoxExtent)
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement_Gravity);
+
+	if (GravityDirectionMode == EGravityDirectionMode::Box &&
+	GravityVectorA == NewGravityBoxOrigin && GravityVectorB == NewGravityBoxExtent)
+	{
+		return;
+	}
+
+	const EGravityDirectionMode OldGravityDirectionMode = GravityDirectionMode;
+
+	GravityDirectionMode = EGravityDirectionMode::Box;
+	GravityVectorA = NewGravityBoxOrigin;
+	GravityVectorB = NewGravityBoxExtent;
+	GravityActor = nullptr;
+
+	GravityDirectionChanged(OldGravityDirectionMode);
+
+}
+
+
+
+void UALSCharacterMovementComponent::SetBoxGravityDirectionFromActor(AActor* NewGravityActor)
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement_Gravity);
+	if (GravityDirectionMode == EGravityDirectionMode::Box && GravityActor == NewGravityActor)
+	{
+		return;
+	}
+
+	const EGravityDirectionMode OldGravityDirectionMode = GravityDirectionMode;
+
+	bDirtyGravityDirection = true;
+	GravityDirectionMode = EGravityDirectionMode::Box;
+	GravityActor = NewGravityActor;
+
+	GravityDirectionChanged(OldGravityDirectionMode);
+
+
+}
+
+void UALSCharacterMovementComponent::MulticastSetBoxGravityDirectionFromActor_Implementation(AActor* NewGravityActor)
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement_Gravity);
+
+	if (GravityDirectionMode == EGravityDirectionMode::Box && GravityActor == NewGravityActor)
+	{
+		return;
+	}
+
+	const EGravityDirectionMode OldGravityDirectionMode = GravityDirectionMode;
+
+	GravityDirectionMode = EGravityDirectionMode::Box;
+	GravityActor = NewGravityActor;
+
+	GravityDirectionChanged(OldGravityDirectionMode);
+
+}
+
+void UALSCharacterMovementComponent::SetCollisionGravityDirection(AActor* NewGravityActor)
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement_Gravity);
+	if (NewGravityActor == nullptr ||
+	(GravityDirectionMode == EGravityDirectionMode::Collision &&
+	GravityActor == NewGravityActor))
+	{
+		return;
+	}
+
+	const UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(NewGravityActor->GetRootComponent());
+	if (Primitive != nullptr)
+	{
+		const EGravityDirectionMode OldGravityDirectionMode = GravityDirectionMode;
+
+		bDirtyGravityDirection = true;
+		GravityDirectionMode = EGravityDirectionMode::Collision;
+		GravityActor = NewGravityActor;
+
+		GravityDirectionChanged(OldGravityDirectionMode);
+	}
+
+
+}
+
+void UALSCharacterMovementComponent::MulticastSetCollisionGravityDirection_Implementation(AActor* NewGravityActor)
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement_Gravity);
+
+	if (GravityDirectionMode == EGravityDirectionMode::Collision && GravityActor == NewGravityActor)
+	{
+		return;
+	}
+
+	const EGravityDirectionMode OldGravityDirectionMode = GravityDirectionMode;
+
+	GravityDirectionMode = EGravityDirectionMode::Collision;
+	GravityActor = NewGravityActor;
+
+	GravityDirectionChanged(OldGravityDirectionMode);
+
+}
+
+void UALSCharacterMovementComponent::GravityDirectionChanged(const EGravityDirectionMode OldGravityDirectionMode)
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement_Gravity);
+	OnGravityDirectionChanged(OldGravityDirectionMode, GravityDirectionMode);
+
+	// Call owner delegate
+	// IALSCharacterInterface* Character = Cast<IALSCharacterInterface>(CharacterOwner);
+	// if (Character != nullptr)
+	// {
+	// 	Character->GravityDirectionChanged(OldGravityDirectionMode, GravityDirectionMode);
+	// }
+
+}
+
+
+bool UALSCharacterMovementComponent::GetIsWalking() const
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement_Gravity);
+	return IsWalking();
+}
+
+void UALSCharacterMovementComponent::LaunchCharacter(const FVector& LaunchVel)
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement_Gravity);
+	Launch(LaunchVel);
+}
+
+void UALSCharacterMovementComponent::UpdateGravity()
+{
+	if (!bAlignGravityToBase || !IsMovingOnGround())
+	{
+		return;
+	}
+
+	switch (GravityDirectionMode)
+	{
+	case EGravityDirectionMode::Fixed:
+		{
+			if (!CurrentFloor.HitResult.ImpactNormal.IsZero())
+			{
+				// Set the fixed gravity direction to reversed floor normal vector
+				SetFixedGravityDirection(CurrentFloor.HitResult.ImpactNormal * -1.0f);
+			}
+
+			break;
+		}
+
+	case EGravityDirectionMode::Point:
+		{
+			if (CurrentFloor.HitResult.GetActor() != nullptr)
+			{
+				// Set the point gravity direction from base
+				SetPointGravityDirectionFromActor(CurrentFloor.HitResult.GetActor());
+			}
+
+			break;
+		}
+
+	case EGravityDirectionMode::Box:
+		{
+			if (CurrentFloor.HitResult.GetActor() != nullptr)
+			{
+				// Set the box gravity direction from base
+				SetBoxGravityDirectionFromActor(CurrentFloor.HitResult.GetActor());
+			}
+
+			break;
+		}
+	case EGravityDirectionMode::Collision:
+	default:
+		{
+			if (CurrentFloor.HitResult.GetActor() != nullptr)
+			{
+				// Set the collision gravity direction from base
+				SetCollisionGravityDirection(CurrentFloor.HitResult.GetActor());
+			}
+
+			break;
+		}
+	}
+
+}
+
+void UALSCharacterMovementComponent::ReplicateGravityToClients()
+{
+	if (bDirtyGravityDirection)
+	{
+		// Replicate gravity direction to clients
+		switch (GravityDirectionMode)
+		{
+		case EGravityDirectionMode::Fixed:
+			{
+				MulticastSetFixedGravityDirection(GravityVectorA);
+				break;
+			}
+
+		case EGravityDirectionMode::SplineTangent:
+			{
+				MulticastSetSplineTangentGravityDirection(GravityActor);
+				break;
+			}
+
+		case EGravityDirectionMode::Point:
+			{
+				MulticastSetPointGravityDirection(GravityVectorA);
+				break;
+			}
+
+		case EGravityDirectionMode::Line:
+			{
+				MulticastSetLineGravityDirection(GravityVectorA, GravityVectorB);
+				break;
+			}
+
+		case EGravityDirectionMode::Segment:
+			{
+				MulticastSetSegmentGravityDirection(GravityVectorA, GravityVectorB);
+				break;
+			}
+
+		case EGravityDirectionMode::Spline:
+			{
+				MulticastSetSplineGravityDirection(GravityActor);
+				break;
+			}
+
+		case EGravityDirectionMode::Plane:
+			{
+				MulticastSetPlaneGravityDirection(GravityVectorA, GravityVectorB);
+				break;
+			}
+
+		case EGravityDirectionMode::SplinePlane:
+			{
+				MulticastSetSplinePlaneGravityDirection(GravityActor);
+				break;
+			}
+
+		case EGravityDirectionMode::Box:
+			{
+				MulticastSetBoxGravityDirection(GravityVectorA, GravityVectorB);
+				break;
+			}
+
+		case EGravityDirectionMode::Collision:
+			{
+				MulticastSetCollisionGravityDirection(GravityActor);
+				break;
+			}
+		}
+
+		bDirtyGravityDirection = false;
+	}
+	if (OldGravityScale != GravityScale)
+	{
+		// Replicate gravity scale to clients
+		MulticastSetGravityScale(GravityScale);
+		OldGravityScale = GravityScale;
+	}
+}
+
+void UALSCharacterMovementComponent::SetAlignGravityToBase(const bool bNewAlignGravityToBase)
+{
+	if (bAlignGravityToBase == bNewAlignGravityToBase)
+	{
+		return;
+	}
+
+	bAlignGravityToBase = bNewAlignGravityToBase;
+
+	if (GetShouldReplicateGravity())
+	{
+		if (!bAlignGravityToBase)
+		{
+			MulticastDisableAlignGravityToBase();
+		}
+		else
+		{
+			MulticastEnableAlignGravityToBase();
+		}
+	}
+
+}
+
+void UALSCharacterMovementComponent::MulticastSetGravityScale_Implementation(const float NewGravityScale)
+{
+	GravityScale = NewGravityScale;
+}
+
+void UALSCharacterMovementComponent::MulticastDisableAlignGravityToBase_Implementation()
+{
+	bAlignGravityToBase = false;
+}
+
+void UALSCharacterMovementComponent::MulticastEnableAlignGravityToBase_Implementation()
+{
+	bAlignGravityToBase = true;
+}
+
+bool UALSCharacterMovementComponent::GetShouldReplicateGravity() const
+{
+	return (!bDisableGravityReplication && CharacterOwner != nullptr &&
+	CharacterOwner->HasAuthority() && GetNetMode() != ENetMode::NM_Standalone);
+
+}
+
+
+
+
+
+
+
+

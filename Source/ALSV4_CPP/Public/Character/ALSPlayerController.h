@@ -5,7 +5,7 @@
 
 #include "CoreMinimal.h"
 #include "InputActionValue.h"
-#include "GameFramework/PlayerController.h"
+#include "Character/PlayerControllerBase.h"
 #include "ALSPlayerController.generated.h"
 
 class AALSBaseCharacter;
@@ -15,7 +15,7 @@ class UInputMappingContext;
  * Player controller class
  */
 UCLASS(Blueprintable, BlueprintType)
-class ALSV4_CPP_API AALSPlayerController : public APlayerController
+class ALSV4_CPP_API AALSPlayerController : public APlayerControllerBase
 {
 	GENERATED_BODY()
 
@@ -26,10 +26,10 @@ public:
 
 	virtual void SetupInputComponent() override;
 
-	virtual void BindActions(UInputMappingContext* Context);
+	virtual void BindActions(UInputMappingContext* Context) override;
 
 protected:
-	void SetupInputs();
+	virtual void SetupInputs() override;
 
 	void SetupCamera();
 
