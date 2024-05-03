@@ -48,7 +48,11 @@ public:
 	{
 		return Cast<IALSGravityMovementInterface>(MyCharacterMovementComponent);
 	}
+	
+	virtual void Ragdoll() override;
+	virtual UPrimitiveComponent* GetPrimitiveComponent() override;
 
+	virtual USkeletalMeshComponent* GetCharacterMesh() override {return GetMesh();};
 
 
 	virtual void Tick(float DeltaTime) override;

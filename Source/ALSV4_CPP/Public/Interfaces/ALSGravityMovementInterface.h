@@ -97,7 +97,10 @@ public:
 
 	/** Queue a pending launch with velocity LaunchVel. */
 	virtual void LaunchCharacter(const FVector& LaunchVel) = 0;
-	
+
+	virtual void SetNewGravityScale(const float NewGravity) = 0;
+	virtual void ResetGravityScale() = 0;
+
 	//~ Gravity Functions	~//
 
 };

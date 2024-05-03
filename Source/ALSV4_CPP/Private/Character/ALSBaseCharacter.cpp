@@ -137,6 +137,16 @@ void AALSBaseCharacter::BeginPlay()
 	ALSDebugComponent = FindComponentByClass<UALSDebugComponent>();
 }
 
+void AALSBaseCharacter::Ragdoll()
+{
+	RagdollStart();
+}
+
+UPrimitiveComponent* AALSBaseCharacter::GetPrimitiveComponent()
+{
+	return Cast<UPrimitiveComponent>(RootComponent);
+}
+
 void AALSBaseCharacter::Tick(float DeltaTime)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::Tick);

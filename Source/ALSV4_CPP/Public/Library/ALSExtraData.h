@@ -3,6 +3,10 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ALSExtraData.generated.h"
+
+DECLARE_LOG_CATEGORY_EXTERN(LogGravity, Display, All);
+
 
 /** Provides modes that determine direction of gravity. */
 UENUM(BlueprintType)

@@ -22,7 +22,7 @@ UALSCharacterMovementComponent::UALSCharacterMovementComponent(const FObjectInit
 
 	// bAlignComponentToFloor = false;
 	// bAlignComponentToGravity = false;
-	// bAlignGravityToBase = false;
+	bAlignGravityToBase = false;
 	// bAlwaysRotateAroundCenter = false;
 	// bApplyingNetworkMovementMode = false;
 	bDirtyGravityDirection = false;
@@ -289,6 +289,17 @@ void UALSCharacterMovementComponent::SetAllowedGait(EALSGait NewAllowedGait)
 //-								Gravity									        	//
 //-																					//
 
+
+void UALSCharacterMovementComponent::SetNewGravityScale(const float NewGravity)
+{
+	OldGravityScale = GravityScale;
+	GravityScale = NewGravity;
+}
+
+void UALSCharacterMovementComponent::ResetGravityScale()
+{
+	GravityScale = OldGravityScale;
+}
 
 void UALSCharacterMovementComponent::SetFixedGravityDirection(const FVector& NewFixedGravityDirection)
 {
@@ -574,8 +585,6 @@ void UALSCharacterMovementComponent::SetSplineGravityDirection(AActor* NewGravit
 
 		GravityDirectionChanged(OldGravityDirectionMode);
 	}
-
-
 }
 
 void UALSCharacterMovementComponent::MulticastSetSplineGravityDirection_Implementation(AActor* NewGravityActor)
@@ -587,14 +596,10 @@ void UALSCharacterMovementComponent::MulticastSetSplineGravityDirection_Implemen
 	{
 		return;
 	}
-
 	const EGravityDirectionMode OldGravityDirectionMode = GravityDirectionMode;
-
 	GravityDirectionMode = EGravityDirectionMode::Spline;
 	GravityActor = NewGravityActor;
-
 	GravityDirectionChanged(OldGravityDirectionMode);
-
 }
 
 void UALSCharacterMovementComponent::SetPlaneGravityDirection(const FVector& NewGravityPlaneBase,
@@ -828,7 +833,7 @@ void UALSCharacterMovementComponent::GravityDirectionChanged(const EGravityDirec
 {
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement_Gravity);
-	OnGravityDirectionChanged(OldGravityDirectionMode, GravityDirectionMode);
+	OnGravityDirectionChanged.Broadcast(OldGravityDirectionMode, GravityDirectionMode);
 
 	// Call owner delegate
 	// IALSCharacterInterface* Character = Cast<IALSCharacterInterface>(CharacterOwner);
