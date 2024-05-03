@@ -40,7 +40,6 @@ UALSCharacterMovementComponent::UALSCharacterMovementComponent(const FObjectInit
 	// LastUnwalkableHitTime = -1.0f;
 	OldGravityScale = GravityScale;
 	// SetThresholdParallelAngle(1.0f);
-	NavAgentProps.bCanCrouch = true;
 
 }
 
