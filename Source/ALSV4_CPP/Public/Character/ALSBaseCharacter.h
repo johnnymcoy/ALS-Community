@@ -11,6 +11,7 @@
 #include "Engine/DataTable.h"
 #include "GameFramework/Character.h"
 #include "Interfaces/ALSCharacterInterface.h"
+#include "Character/ALSCharacterMovementComponent.h"
 #include "ALSBaseCharacter.generated.h"
 
 // forward declarations
@@ -641,4 +642,8 @@ protected:
 private:
 	UPROPERTY()
 	TObjectPtr<UALSDebugComponent> ALSDebugComponent = nullptr;
+
+
+	void SetupCapsuleComponent() const;
+	void SetupMeshComponent() const;
 };

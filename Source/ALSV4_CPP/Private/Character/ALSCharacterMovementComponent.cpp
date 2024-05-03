@@ -16,6 +16,7 @@ DECLARE_CYCLE_STAT(TEXT("ALS Movement Comp (All Gravity Funcs)"), STATGROUP_ALS_
 UALSCharacterMovementComponent::UALSCharacterMovementComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	NavAgentProps.bCanCrouch = true;
 
 	// NetworkSmoothingMode = ENetworkSmoothingMode::Disabled;
 	// RotationRate = FRotator(360.0f, 360.0f, 360.0f);

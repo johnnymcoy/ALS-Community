@@ -3,19 +3,16 @@
 
 
 #include "Character/ALSBaseCharacter.h"
-
-
 #include "Character/Animation/ALSCharacterAnimInstance.h"
 #include "Character/Animation/ALSPlayerCameraBehavior.h"
 #include "Library/ALSMathLibrary.h"
 #include "Components/ALSDebugComponent.h"
-
 #include "Components/CapsuleComponent.h"
 #include "Curves/CurveFloat.h"
-#include "Character/ALSCharacterMovementComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/GameplayStatics.h"
+#include "NavAreas/NavArea_Obstacle.h"
 #include "TimerManager.h"
 #include "Net/UnrealNetwork.h"
 
@@ -40,9 +37,9 @@ AALSBaseCharacter::AALSBaseCharacter(const FObjectInitializer& ObjectInitializer
 	bUseControllerRotationYaw = false;
 	bReplicates = true;
 	SetReplicatingMovement(true);
-	GetCapsuleComponent()->SetCapsuleHalfHeight(90.0f);
-	GetCapsuleComponent()->SetCapsuleRadius(35.0f);
-
+	
+	SetupCapsuleComponent();	
+	SetupMeshComponent();
 }
 
 void AALSBaseCharacter::PostInitializeComponents()
@@ -1590,4 +1587,34 @@ void AALSBaseCharacter::OnRep_OverlayState(EALSOverlayState PrevOverlayState)
 void AALSBaseCharacter::OnRep_VisibleMesh(const USkeletalMesh* PreviousSkeletalMesh)
 {
 	OnVisibleMeshChanged(PreviousSkeletalMesh);
+}
+
+void AALSBaseCharacter::SetupCapsuleComponent() const
+{
+	if(GetCapsuleComponent() == nullptr){UE_LOG(LogTemp, Error, TEXT("AALSBaseCharacter::SetupCapsuleComponent FAILED"));return;}
+	GetCapsuleComponent()->SetCapsuleHalfHeight(90.0f);
+	GetCapsuleComponent()->SetCapsuleRadius(35.0f);
+	GetCapsuleComponent()->SetAreaClassOverride(UNavArea_Obstacle::StaticClass());
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Visibility, ECR_Ignore);
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_GameTraceChannel3, ECR_Ignore);	// Climable
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_GameTraceChannel4, ECR_Ignore);	// WeaponTraceChannel
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_GameTraceChannel5, ECR_Overlap);	// Interactable
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_GameTraceChannel6, ECR_Ignore);	// Characters
+}
+
+void AALSBaseCharacter::SetupMeshComponent() const
+{
+	if(GetMesh() == nullptr){UE_LOG(LogTemp, Error, TEXT("AALSBaseCharacter::SetupMeshComponent FAILED"));return;}
+	GetMesh()->SetWorldTransform(FTransform(FRotator(0.0f,-90.0f,0.0f), FVector(0.0f,0.0f,-92.0f)));
+	GetMesh()->SetCollisionResponseToChannel(ECC_Visibility, ECR_Ignore);
+	GetMesh()->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
+	GetMesh()->SetCollisionResponseToChannel(ECC_GameTraceChannel3, ECR_Ignore);	// Climable
+	GetMesh()->SetCollisionResponseToChannel(ECC_GameTraceChannel4, ECR_Block);		// WeaponTraceChannel
+	GetMesh()->SetCollisionResponseToChannel(ECC_GameTraceChannel5, ECR_Block);		// Interactable
+	GetMesh()->SetCollisionResponseToChannel(ECC_GameTraceChannel5, ECR_Block);		// Characters
+	GetMesh()->SetGenerateOverlapEvents(true);
+	//@TODO if Using only one Skeleton, Remove this	//
+	GetMesh()->bUpdateMeshWhenKinematic = true;
+	GetMesh()->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
 }

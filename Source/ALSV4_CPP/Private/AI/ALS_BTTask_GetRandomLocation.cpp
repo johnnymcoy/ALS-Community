@@ -4,6 +4,7 @@
 #include "AI/ALS_BTTask_GetRandomLocation.h"
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
+#include "NavFilters/NavigationQueryFilter.h"
 #include "BehaviorTree/Blackboard/BlackboardKeyType_Vector.h"
 
 UALS_BTTask_GetRandomLocation::UALS_BTTask_GetRandomLocation()

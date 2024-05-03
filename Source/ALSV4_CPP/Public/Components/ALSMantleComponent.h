@@ -117,4 +117,7 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<UALSDebugComponent> ALSDebugComponent = nullptr;
+	
+	UPROPERTY()
+	bool bPhysicActor = false;
 };
