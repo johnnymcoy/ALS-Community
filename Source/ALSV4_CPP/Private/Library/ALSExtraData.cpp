@@ -2,3 +2,5 @@
 
 
 #include "Library/ALSExtraData.h"
+
+DEFINE_LOG_CATEGORY(LogGravity);

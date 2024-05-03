@@ -12,6 +12,9 @@
 #include "ALSCharacterMovementComponent.generated.h"
 
 enum class EGravityDirectionMode : uint8;
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnGravityDirectionChanged, EGravityDirectionMode, OldGravityDirectionMode, EGravityDirectionMode, CurrentGravityDirectionMode);
+
 /**
  * Authoritative networked Character Movement
  */
@@ -81,7 +84,20 @@ class ALSV4_CPP_API UALSCharacterMovementComponent : public UCharacterMovementCo
 
 
 	//~ IALSGravityMovementInterface Functions	~//
-	
+
+	UPROPERTY(BlueprintAssignable, Category="Gravity")
+	FOnGravityDirectionChanged OnGravityDirectionChanged;
+	// /** Called after GravityDirectionMode (or related data) has changed.
+	//  * @note Can be overriden
+	//  * @param OldGravityDirectionMode - previous value of GravityDirectionMode
+	//  * @param CurrentGravityDirectionMode - current value of GravityDirectionMode */
+	// UFUNCTION(BlueprintImplementableEvent, Category="GravityCharacterMovement")
+	// void OnGravityDirectionChanged(EGravityDirectionMode OldGravityDirectionMode, EGravityDirectionMode CurrentGravityDirectionMode);
+
+
+	virtual void SetNewGravityScale(const float NewGravity) override;
+	virtual void ResetGravityScale() override;
+
 	/** Sets a new fixed gravity direction.
 	 * @note It can be influenced by GravityScale
 	 * @param NewFixedGravityDirection - new fixed gravity direction, assumes it is normalized  */
@@ -279,12 +295,6 @@ protected:
 	 * @param OldGravityDirectionMode - previous value of GravityDirectionMode */
 	void GravityDirectionChanged(const EGravityDirectionMode OldGravityDirectionMode);
 
-	/** Called after GravityDirectionMode (or related data) has changed.
-	 * @note Can be overriden
-	 * @param OldGravityDirectionMode - previous value of GravityDirectionMode
-	 * @param CurrentGravityDirectionMode - current value of GravityDirectionMode */
-	UFUNCTION(BlueprintImplementableEvent, Category="GravityCharacterMovement")
-	void OnGravityDirectionChanged(EGravityDirectionMode OldGravityDirectionMode, EGravityDirectionMode CurrentGravityDirectionMode);
 
 	/**
 	 * Asks if gravity data should be replicated from server to clients.
