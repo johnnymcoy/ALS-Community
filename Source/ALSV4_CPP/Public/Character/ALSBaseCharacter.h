@@ -118,7 +118,7 @@ public:
 	EALSGait GetDesiredGait() const { return DesiredGait; }
 
 	UFUNCTION(BlueprintCallable, Category = "ALS|Character States")
-	void SetRotationMode(EALSRotationMode NewRotationMode, bool bForce = false);
+	virtual void SetRotationMode(EALSRotationMode NewRotationMode, bool bForce = false);
 
 	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "ALS|Character States")
 	void Server_SetRotationMode(EALSRotationMode NewRotationMode, bool bForce);
@@ -127,7 +127,7 @@ public:
 	EALSRotationMode GetRotationMode() const { return RotationMode; }
 
 	UFUNCTION(BlueprintCallable, Category = "ALS|Character States")
-	void SetViewMode(EALSViewMode NewViewMode, bool bForce = false);
+	virtual void SetViewMode(EALSViewMode NewViewMode, bool bForce = false);
 
 	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "ALS|Character States")
 	void Server_SetViewMode(EALSViewMode NewViewMode, bool bForce);
@@ -221,7 +221,7 @@ public:
 	EALSRotationMode GetDesiredRotationMode() const { return DesiredRotationMode; }
 
 	UFUNCTION(BlueprintSetter, Category = "ALS|Input")
-	void SetDesiredRotationMode(EALSRotationMode NewRotMode);
+	virtual void SetDesiredRotationMode(EALSRotationMode NewRotMode);
 
 	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "ALS|Character States")
 	void Server_SetDesiredRotationMode(EALSRotationMode NewRotMode);
@@ -280,16 +280,31 @@ public:
 	bool IsRightShoulder() const { return bRightShoulder; }
 
 	UFUNCTION(BlueprintCallable, Category = "ALS|Camera System")
-	void SetRightShoulder(bool bNewRightShoulder);
+	void SetRightShoulder(const bool bNewRightShoulder);
+
+	UFUNCTION(BlueprintGetter, Category = "ALS|Camera System")
+	bool IsAimingDownSights() const { return bAimDownSights; }
+
+	UFUNCTION(BlueprintGetter, Category = "ALS|Camera System")
+	virtual bool GetCanAimDownSights() const;
+
+	UFUNCTION(BlueprintCallable, Category = "ALS|Camera System")
+	void SetAimDownSights(const bool bNewAimDownSights);
 
 	UFUNCTION(BlueprintCallable, Category = "ALS|Camera System")
 	virtual ECollisionChannel GetThirdPersonTraceParams(FVector& TraceOrigin, float& TraceRadius);
 
 	UFUNCTION(BlueprintCallable, Category = "ALS|Camera System")
 	virtual FTransform GetThirdPersonPivotTarget();
-
+	
 	UFUNCTION(BlueprintCallable, Category = "ALS|Camera System")
 	virtual FVector GetFirstPersonCameraTarget();
+
+	UFUNCTION(BlueprintCallable, Category = "ALS|Camera System")
+	virtual FVector GetAimDownSightCameraTarget() const;
+
+	UFUNCTION(BlueprintCallable, Category = "ALS|Camera System")
+	virtual float GetAimDownSightFOV() const;
 
 	UFUNCTION(BlueprintCallable, Category = "ALS|Camera System")
 	void GetCameraParameters(float& TPFOVOut, float& FPFOVOut, bool& bRightShoulderOut) const;
@@ -320,13 +335,14 @@ public:
 	UFUNCTION(BlueprintGetter, Category = "ALS|Essential Information")
 	float GetAimYawRate() const { return AimYawRate; }
 
+	
 	/** Input */
 
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "ALS|Input")
-	void ForwardMovementAction(float Value);
+	// UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "ALS|Input")
+	virtual void ForwardMovementAction(float Value);
 
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "ALS|Input")
-	void RightMovementAction(float Value);
+	// UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "ALS|Input")
+	virtual void RightMovementAction(float Value);
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "ALS|Input")
 	void CameraUpAction(float Value);
@@ -343,11 +359,11 @@ public:
 	// UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "ALS|Input")
 	virtual void AimAction(bool bValue);
 
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "ALS|Input")
-	void CameraTapAction();
+	// UFUNCTION(BlueprintCallable, Category = "ALS|Input")
+	virtual void CameraTapAction();
 
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "ALS|Input")
-	void CameraHeldAction();
+	// UFUNCTION(BlueprintCallable, Category = "ALS|Input")
+	virtual void CameraHeldAction();
 
 	// UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "ALS|Input")
 	virtual void StanceAction();
@@ -472,10 +488,14 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "ALS|Camera System")
 	float FirstPersonFOV = 90.0f;
-
+	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "ALS|Camera System")
 	bool bRightShoulder = false;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "ALS|Camera System")
+	bool bAimDownSights = false;
+
+	
 	/** Movement System */
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "ALS|Movement System")

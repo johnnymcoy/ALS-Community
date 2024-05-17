@@ -26,6 +26,8 @@ const FName NAME_PivotOffset_Y(TEXT("PivotOffset_Y"));
 const FName NAME_PivotOffset_Z(TEXT("PivotOffset_Z"));
 const FName NAME_RotationLagSpeed(TEXT("RotationLagSpeed"));
 const FName NAME_Weight_FirstPerson(TEXT("Weight_FirstPerson"));
+const FName NAME_Weight_ADS(TEXT("Weight_ADS"));
+
 
 DECLARE_CYCLE_STAT(TEXT("ALS Camera Manager (All Functions)"), STATGROUP_ALS_Camera_Manager, STATGROUP_ALS);
 
@@ -58,6 +60,7 @@ void AALSPlayerCameraManager::OnPossess(AALSBaseCharacter* NewCharacter)
 		CastedBehv->SetRotationMode(NewCharacter->GetRotationMode());
 		CastedBehv->Stance = NewCharacter->GetStance();
 		CastedBehv->ViewMode = NewCharacter->GetViewMode();
+		CastedBehv->bAimDownSights = NewCharacter->IsAimingDownSights();
 	}
 
 	// Initial position
@@ -147,9 +150,12 @@ bool AALSPlayerCameraManager::CustomCameraBehavior(float DeltaTime, FVector& Loc
 	// Step 1: Get Camera Parameters from CharacterBP via the Camera Interface
 	const FTransform& PivotTarget = ControlledCharacter->GetThirdPersonPivotTarget();
 	const FVector& FPTarget = ControlledCharacter->GetFirstPersonCameraTarget();
+	const FVector& ADSTarget = ControlledCharacter->GetAimDownSightCameraTarget();
+
 	float TPFOV = 90.0f;
 	float FPFOV = 90.0f;
 	bool bRightShoulder = false;
+	const float ADSFOV = ControlledCharacter->GetAimDownSightFOV();
 	ControlledCharacter->GetCameraParameters(TPFOV, FPFOV, bRightShoulder);
 
 	// Step 2: Calculate Target Camera Rotation. Use the Control Rotation and interpolate for smooth camera rotation.
@@ -236,9 +242,18 @@ bool AALSPlayerCameraManager::CustomCameraBehavior(float DeltaTime, FVector& Loc
 
 	// Step 8: Lerp First Person Override and return target camera parameters.
 	FTransform TargetCameraTransform(TargetCameraRotation, TargetCameraLocation, FVector::OneVector);
+	
 	FTransform FPTargetCameraTransform(TargetCameraRotation, FPTarget, FVector::OneVector);
 
-	const FTransform& MixedTransform = UKismetMathLibrary::TLerp(TargetCameraTransform, FPTargetCameraTransform,
+	FTransform ADSTargetCameraTransform(TargetCameraRotation, ADSTarget, FVector::OneVector);
+
+
+	const FTransform& ADSTransform = UKismetMathLibrary::TLerp(FPTargetCameraTransform, ADSTargetCameraTransform,
+															 GetCameraBehaviorParam(
+																 NAME_Weight_ADS));
+
+
+	const FTransform& MixedTransform = UKismetMathLibrary::TLerp(TargetCameraTransform, ADSTransform, //FPTargetCameraTransform
 	                                                             GetCameraBehaviorParam(
 		                                                             NAME_Weight_FirstPerson));
 
@@ -250,7 +265,9 @@ bool AALSPlayerCameraManager::CustomCameraBehavior(float DeltaTime, FVector& Loc
 
 	Location = TargetTransform.GetLocation();
 	Rotation = TargetTransform.Rotator();
-	FOV = FMath::Lerp(TPFOV, FPFOV, GetCameraBehaviorParam(NAME_Weight_FirstPerson));
+	const float CalculateFPFOV = FMath::Lerp(FPFOV, ADSFOV, GetCameraBehaviorParam(NAME_Weight_ADS));
+
+	FOV = FMath::Lerp(TPFOV, CalculateFPFOV, GetCameraBehaviorParam(NAME_Weight_FirstPerson));
 
 	return true;
 }

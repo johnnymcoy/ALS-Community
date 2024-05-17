@@ -14,6 +14,7 @@
 
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Net/UnrealNetwork.h"
 
 
 static const FName NAME_BasePose_CLF(TEXT("BasePose_CLF"));
@@ -1063,6 +1064,14 @@ void UALSCharacterAnimInstance::SetFiringWeapon(const bool bValue)
 {
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::SetFiringWeapon);
+	// if(bValue)
+	// {
+	// 	UE_LOG(LogTemp, Warning, TEXT("UALSCharacterAnimInstance::SetFiring Weapon Set Firing TRUE"));
+	// }
+	// else
+	// {
+	// 	UE_LOG(LogTemp, Warning, TEXT("UALSCharacterAnimInstance::SetFiring Weapon Set Firing FALSE"));
+	// }
 	bFiringWeapon = bValue;
 }
 

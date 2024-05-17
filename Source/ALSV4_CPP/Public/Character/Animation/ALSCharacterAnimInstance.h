@@ -54,6 +54,7 @@ public:
 	
 	/** For Setting the characters blind fire	*/
 	virtual void SetFiringWeapon(const bool bValue) override;
+
 	/** Setting The Location and Rotation of the Recoil	*/
 	virtual void SetRecoilTransform(const FTransform& Transform) override;
 	/** Setting the Pivot Point for the Gun to Rotate Around when Recoiling*/

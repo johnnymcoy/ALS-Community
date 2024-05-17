@@ -18,6 +18,7 @@
 
 
 const FName NAME_FP_Camera(TEXT("FP_Camera"));
+const FName NAME_ADS_Camera(TEXT("ADS_Camera"));
 const FName NAME_Pelvis(TEXT("Pelvis"));
 const FName NAME_RagdollPose(TEXT("RagdollPose"));
 const FName NAME_RotationAmount(TEXT("RotationAmount"));
@@ -724,12 +725,42 @@ void AALSBaseCharacter::Server_SetVisibleMesh_Implementation(USkeletalMesh* NewV
 	SetVisibleMesh(NewVisibleMesh);
 }
 
-void AALSBaseCharacter::SetRightShoulder(bool bNewRightShoulder)
+void AALSBaseCharacter::SetRightShoulder(const bool bNewRightShoulder)
 {
 	bRightShoulder = bNewRightShoulder;
 	if (CameraBehavior)
 	{
 		CameraBehavior->bRightShoulder = bRightShoulder;
+	}
+}
+
+bool AALSBaseCharacter::GetCanAimDownSights() const
+{
+	if(RotationMode != EALSRotationMode::Aiming)
+	{
+		return false;
+	}
+	return true;
+}
+
+void AALSBaseCharacter::SetAimDownSights(const bool bNewAimDownSights)
+{
+	if(GetCanAimDownSights() && bNewAimDownSights)
+	{
+		bAimDownSights = bNewAimDownSights;
+		if(CameraBehavior != nullptr)
+		{
+			CameraBehavior->bAimDownSights = bAimDownSights;
+		}
+	}
+	else
+	{
+		bAimDownSights = false;
+		if(CameraBehavior != nullptr)
+		{
+			CameraBehavior->bAimDownSights = false;
+		}
+
 	}
 }
 
@@ -747,7 +778,20 @@ FTransform AALSBaseCharacter::GetThirdPersonPivotTarget()
 
 FVector AALSBaseCharacter::GetFirstPersonCameraTarget()
 {
+	if(GetMesh() == nullptr){return FVector::ZeroVector;}
 	return GetMesh()->GetSocketLocation(NAME_FP_Camera);
+}
+
+//@TODO maybe remove? 
+FVector AALSBaseCharacter::GetAimDownSightCameraTarget() const
+{
+	if(GetMesh() == nullptr){return FVector::ZeroVector;}
+	return GetMesh()->GetSocketLocation(NAME_ADS_Camera);
+}
+
+float AALSBaseCharacter::GetAimDownSightFOV() const
+{
+	return FirstPersonFOV;
 }
 
 void AALSBaseCharacter::GetCameraParameters(float& TPFOVOut, float& FPFOVOut, bool& bRightShoulderOut) const
@@ -852,7 +896,10 @@ void AALSBaseCharacter::SetActorLocationDuringRagdoll(float DeltaTime)
 	{
 		ServerRagdollPull = FMath::FInterpTo(ServerRagdollPull, 750.0f, DeltaTime, 0.6f);
 		float RagdollSpeed = FVector(LastRagdollVelocity.X, LastRagdollVelocity.Y, 0).Size();
-		FName RagdollSocketPullName = RagdollSpeed > 300 ? NAME_spine_03 : NAME_pelvis;
+		/** Check if Socket exists, if not use other case	*/
+		FName RagdollPelvisSocket = GetMesh()->DoesSocketExist(NAME_pelvis) ? NAME_pelvis : NAME_Pelvis;
+		//FName RagdollSocketPullName = RagdollSpeed > 300 ? NAME_spine_03 : NAME_pelvis;
+		FName RagdollSocketPullName = RagdollSpeed > 300 ? NAME_spine_03 : RagdollPelvisSocket;
 		GetMesh()->AddForce(
 			(TargetRagdollLocation - GetMesh()->GetSocketLocation(RagdollSocketPullName)) * ServerRagdollPull,
 			RagdollSocketPullName, true);
@@ -1335,7 +1382,7 @@ void AALSBaseCharacter::LimitRotation(float AimYawMin, float AimYawMax, float In
 	}
 }
 
-void AALSBaseCharacter::ForwardMovementAction_Implementation(float Value)
+void AALSBaseCharacter::ForwardMovementAction(float Value)
 {
 	if (MovementState == EALSMovementState::Grounded || MovementState == EALSMovementState::InAir)
 	{
@@ -1345,7 +1392,7 @@ void AALSBaseCharacter::ForwardMovementAction_Implementation(float Value)
 	}
 }
 
-void AALSBaseCharacter::RightMovementAction_Implementation(float Value)
+void AALSBaseCharacter::RightMovementAction(float Value)
 {
 	if (MovementState == EALSMovementState::Grounded || MovementState == EALSMovementState::InAir)
 	{
@@ -1432,7 +1479,7 @@ void AALSBaseCharacter::AimAction(bool bValue)
 	}
 }
 
-void AALSBaseCharacter::CameraTapAction_Implementation()
+void AALSBaseCharacter::CameraTapAction()
 {
 	if (ViewMode == EALSViewMode::FirstPerson)
 	{
@@ -1444,7 +1491,7 @@ void AALSBaseCharacter::CameraTapAction_Implementation()
 	SetRightShoulder(!bRightShoulder);
 }
 
-void AALSBaseCharacter::CameraHeldAction_Implementation()
+void AALSBaseCharacter::CameraHeldAction()
 {
 	// Switch camera mode
 	if (ViewMode == EALSViewMode::FirstPerson)
