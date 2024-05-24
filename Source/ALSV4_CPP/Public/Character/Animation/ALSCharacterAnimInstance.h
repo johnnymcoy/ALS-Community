@@ -5,6 +5,7 @@
 
 #include "CoreMinimal.h"
 #include "Animation/AnimInstance.h"
+#include "Data/BaseData.h"
 #include "Interfaces/CustomAnimInstance.h"
 #include "Library/ALSAnimationStructLibrary.h"
 #include "Library/ALSStructEnumLibrary.h"
@@ -61,10 +62,15 @@ public:
 	virtual void SetPivotPoint(const FTransform& Transform) override;
 	/** For When the feet get stuck and need disabling	*/
 	virtual void DisableFootIK(const float DelayTime) override;
-	
+
+	virtual void SetInjured(const EBodyPartName BodyPartName, const float InjuredAmount) override;
 	//~		Custom Anim Instance	~//
+	
 	UFUNCTION(BlueprintImplementableEvent, Category="Custom ALS")
 	void OnDisableFootIK(const float DelayTime);
+	UFUNCTION(BlueprintImplementableEvent, Category="Custom ALS")
+	void OnInjured(const EBodyPartName BodyPartName, const float InjuredAmount);
+
 	UFUNCTION(BlueprintCallable, Category="Custom ALS")
 	bool GetFiringWeapon() const{return bFiringWeapon;};
 
@@ -320,6 +326,10 @@ public:
 	FTransform PivotPoint;
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Read Only Data|Anim Graph - Recoil")
 	bool bFiringWeapon = false;
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Read Only Data|Anim Graph - Injured")
+	EBodyPartName InjuredBodyPart = EBodyPartName::Pelvis;
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Read Only Data|Anim Graph - Injured")
+	float InjuredAlpha = 0.0f;
 	//~		Custom Anim Vars	~//
 
 

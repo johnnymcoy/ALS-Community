@@ -1064,14 +1064,6 @@ void UALSCharacterAnimInstance::SetFiringWeapon(const bool bValue)
 {
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::SetFiringWeapon);
-	// if(bValue)
-	// {
-	// 	UE_LOG(LogTemp, Warning, TEXT("UALSCharacterAnimInstance::SetFiring Weapon Set Firing TRUE"));
-	// }
-	// else
-	// {
-	// 	UE_LOG(LogTemp, Warning, TEXT("UALSCharacterAnimInstance::SetFiring Weapon Set Firing FALSE"));
-	// }
 	bFiringWeapon = bValue;
 }
 
@@ -1095,4 +1087,13 @@ void UALSCharacterAnimInstance::DisableFootIK(const float DelayTime)
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::DisableFootIK);
 	OnDisableFootIK(DelayTime);
+}
+
+void UALSCharacterAnimInstance::SetInjured(const EBodyPartName BodyPartName, const float InjuredAmount)
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::SetInjured);
+	InjuredBodyPart = BodyPartName;
+	InjuredAlpha = InjuredAmount;
+	OnInjured(BodyPartName, InjuredAmount);
 }
