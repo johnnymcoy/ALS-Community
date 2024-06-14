@@ -95,7 +95,10 @@ void UALSCharacterAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	CharacterInformation.Acceleration = Character->GetAcceleration();
 	CharacterInformation.AimYawRate = Character->GetAimYawRate();
 	CharacterInformation.Speed = Character->GetSpeed();
-	CharacterInformation.Velocity = Character->GetCharacterMovement()->Velocity;
+	if(Character->GetCharacterMovement() != nullptr)
+	{
+		CharacterInformation.Velocity = Character->GetCharacterMovement()->Velocity;
+	}
 	CharacterInformation.MovementInput = Character->GetMovementInput();
 	CharacterInformation.AimingRotation = Character->GetAimingRotation();
 	CharacterInformation.CharacterActorRotation = Character->GetActorRotation();
@@ -457,7 +460,7 @@ void UALSCharacterAnimInstance::SetFootLockOffsets(float DeltaSeconds, FVector& 
 	FRotator RotationDifference = FRotator::ZeroRotator;
 	// Use the delta between the current and last updated rotation to find how much the foot should be rotated
 	// to remain planted on the ground.
-	if (Character->GetCharacterMovement()->IsMovingOnGround())
+	if (Character->GetCharacterMovement() != nullptr && Character->GetCharacterMovement()->IsMovingOnGround())
 	{
 		RotationDifference = CharacterInformation.CharacterActorRotation - Character->GetCharacterMovement()->
 			GetLastUpdateRotation();
@@ -572,7 +575,7 @@ void UALSCharacterAnimInstance::SetFootOffsets(float DeltaSeconds, FName EnableF
 	}
 
 	FRotator TargetRotOffset = FRotator::ZeroRotator;
-	if (Character->GetCharacterMovement()->IsWalkable(HitResult))
+	if (Character->GetCharacterMovement() != nullptr && Character->GetCharacterMovement()->IsWalkable(HitResult))
 	{
 		FVector ImpactPoint = HitResult.ImpactPoint;
 		FVector ImpactNormal = HitResult.ImpactNormal;
@@ -803,12 +806,18 @@ FVector UALSCharacterAnimInstance::CalculateRelativeAccelerationAmount() const
 	// and 1 equals the Max Acceleration of the Character Movement Component.
 	if (FVector::DotProduct(CharacterInformation.Acceleration, CharacterInformation.Velocity) > 0.0f)
 	{
-		const float MaxAcc = Character->GetCharacterMovement()->GetMaxAcceleration();
-		return CharacterInformation.CharacterActorRotation.UnrotateVector(
-			CharacterInformation.Acceleration.GetClampedToMaxSize(MaxAcc) / MaxAcc);
+		if(Character->GetCharacterMovement() != nullptr)
+		{
+			const float MaxAcc = Character->GetCharacterMovement()->GetMaxAcceleration();
+			return CharacterInformation.CharacterActorRotation.UnrotateVector(
+				CharacterInformation.Acceleration.GetClampedToMaxSize(MaxAcc) / MaxAcc);
+		}
 	}
-
-	const float MaxBrakingDec = Character->GetCharacterMovement()->GetMaxBrakingDeceleration();
+	float MaxBrakingDec = 0.0f;
+	if(Character->GetCharacterMovement() != nullptr)
+	{
+		MaxBrakingDec = Character->GetCharacterMovement()->GetMaxBrakingDeceleration();
+	}
 	return
 		CharacterInformation.CharacterActorRotation.UnrotateVector(
 			CharacterInformation.Acceleration.GetClampedToMaxSize(MaxBrakingDec) / MaxBrakingDec);
@@ -933,7 +942,7 @@ float UALSCharacterAnimInstance::CalculateLandPrediction() const
 		                                                5.0f);
 	}
 
-	if (Character->GetCharacterMovement()->IsWalkable(HitResult) && ensure(IsValid(LandPredictionCurve)))
+	if (Character->GetCharacterMovement() != nullptr && Character->GetCharacterMovement()->IsWalkable(HitResult) && ensure(IsValid(LandPredictionCurve)))
 	{
 		return FMath::Lerp(LandPredictionCurve->GetFloatValue(HitResult.Time), 0.0f,GetCurveValue(NAME_Mask_LandPrediction));
 	}

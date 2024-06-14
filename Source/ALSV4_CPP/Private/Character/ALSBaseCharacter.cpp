@@ -1113,15 +1113,21 @@ void AALSBaseCharacter::SetEssentialValues(float DeltaTime)
 
 	if (GetLocalRole() != ROLE_SimulatedProxy)
 	{
-		ReplicatedCurrentAcceleration = GetCharacterMovement()->GetCurrentAcceleration();
+		if(GetCharacterMovement() != nullptr)
+		{
+			ReplicatedCurrentAcceleration = GetCharacterMovement()->GetCurrentAcceleration();
+			EasedMaxAcceleration = GetCharacterMovement()->GetMaxAcceleration();
+		}
 		ReplicatedControlRotation = GetControlRotation();
-		EasedMaxAcceleration = GetCharacterMovement()->GetMaxAcceleration();
 	}
 	else
 	{
-		EasedMaxAcceleration = GetCharacterMovement()->GetMaxAcceleration() != 0
-			                       ? GetCharacterMovement()->GetMaxAcceleration()
-			                       : EasedMaxAcceleration / 2;
+		if(GetCharacterMovement() != nullptr)
+		{
+			EasedMaxAcceleration = GetCharacterMovement()->GetMaxAcceleration() != 0
+									   ? GetCharacterMovement()->GetMaxAcceleration()
+									   : EasedMaxAcceleration / 2;
+		}
 	}
 
 	// Interp AimingRotation to current control rotation for smooth character rotation movement. Decrease InterpSpeed
