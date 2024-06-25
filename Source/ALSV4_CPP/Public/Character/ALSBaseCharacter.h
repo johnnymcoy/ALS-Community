@@ -12,6 +12,7 @@
 #include "GameFramework/Character.h"
 #include "Interfaces/ALSCharacterInterface.h"
 #include "Character/ALSCharacterMovementComponent.h"
+#include "Interfaces/CustomCharacter.h"
 #include "ALSBaseCharacter.generated.h"
 
 // forward declarations
@@ -28,7 +29,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FRagdollStateChangedSignature, bool,
  * Base character class
  */
 UCLASS(BlueprintType)
-class ALSV4_CPP_API AALSBaseCharacter : public ACharacter, public IALSCharacterInterface
+class ALSV4_CPP_API AALSBaseCharacter : public ACharacter, public IALSCharacterInterface, public ICustomCharacter
 {
 	GENERATED_BODY()
 
@@ -172,6 +173,12 @@ public:
 	UFUNCTION(BlueprintCallable, NetMulticast, Reliable, Category = "ALS|Character States")
 	void Multicast_PlayMontage(UAnimMontage* Montage, float PlayRate);
 
+	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "ALS|Character States")
+	void Server_StopMontage(const float InBlendOutTime, const UAnimMontage* Montage);
+
+	UFUNCTION(BlueprintCallable, NetMulticast, Reliable, Category = "ALS|Character States")
+	void Multicast_StopMontage(const float InBlendOutTime, const UAnimMontage* Montage);
+
 	/** Ragdolling*/
 	UFUNCTION(BlueprintCallable, Category = "ALS|Character States")
 	void ReplicatedRagdollStart();
@@ -253,6 +260,12 @@ public:
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "ALS|Movement System")
 	void OnBreakfall();
 	virtual void OnBreakfall_Implementation();
+
+	
+	virtual float PlayReplicatedMontage(UAnimMontage* MontageToPlay, const float InPlayRate, const EMontagePlayReturnType ReturnValueType,
+		const float InTimeToStartMontageAt, const bool bStopAllMontages) override;
+
+	virtual void StopReplicatedMontage(const float InBlendOutTime, const UAnimMontage* Montage) override;
 
 	/** BP implementable function that called when A Montage starts, e.g. during rolling */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "ALS|Movement System")

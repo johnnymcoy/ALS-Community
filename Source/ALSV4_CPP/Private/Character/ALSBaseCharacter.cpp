@@ -78,6 +78,31 @@ void AALSBaseCharacter::OnBreakfall_Implementation()
 	Replicated_PlayMontage(GetRollAnimation(), 1.35);
 }
 
+float AALSBaseCharacter::PlayReplicatedMontage(UAnimMontage* MontageToPlay, const float InPlayRate, const EMontagePlayReturnType ReturnValueType,
+                                               const float InTimeToStartMontageAt, const bool bStopAllMontages)
+{
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::PlayReplicatedMontage);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+	float AnimDuration = 0.0f;
+	if(GetMesh() != nullptr && GetMesh()->GetAnimInstance() != nullptr)
+	{
+		AnimDuration = GetMesh()->GetAnimInstance()->Montage_Play(MontageToPlay, InPlayRate, ReturnValueType, InTimeToStartMontageAt, bStopAllMontages);
+	}
+	Server_PlayMontage(MontageToPlay, InPlayRate);
+	return AnimDuration;
+}
+
+void AALSBaseCharacter::StopReplicatedMontage(const float InBlendOutTime, const UAnimMontage* Montage)
+{
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::StopReplicatedMontage);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+	if(GetMesh() != nullptr && GetMesh()->GetAnimInstance() != nullptr)
+	{
+		GetMesh()->GetAnimInstance()->Montage_Stop(InBlendOutTime, Montage);
+	}
+	Server_StopMontage(InBlendOutTime, Montage);
+}
+
 void AALSBaseCharacter::Replicated_PlayMontage_Implementation(UAnimMontage* Montage, float PlayRate)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::Replicated_PlayMontage_Implementation);
@@ -161,11 +186,11 @@ void AALSBaseCharacter::Tick(float DeltaTime)
 		UpdateCharacterMovement();
 		UpdateGroundedRotation(DeltaTime);
 	}
-	else if (MovementState == EALSMovementState::InAir)
+	else if(MovementState == EALSMovementState::InAir)
 	{
 		UpdateInAirRotation(DeltaTime);
 	}
-	else if (MovementState == EALSMovementState::Ragdoll)
+	else if(MovementState == EALSMovementState::Ragdoll)
 	{
 		RagdollUpdate(DeltaTime);
 	}
@@ -542,6 +567,24 @@ void AALSBaseCharacter::Multicast_PlayMontage_Implementation(UAnimMontage* Monta
 	if (GetMesh()->GetAnimInstance() && !IsLocallyControlled())
 	{
 		GetMesh()->GetAnimInstance()->Montage_Play(Montage, PlayRate);
+	}
+}
+
+void AALSBaseCharacter::Server_StopMontage_Implementation(const float InBlendOutTime, const UAnimMontage* Montage)
+{
+	if (GetMesh()->GetAnimInstance())
+	{
+		GetMesh()->GetAnimInstance()->Montage_Stop(InBlendOutTime, Montage);
+	}
+	ForceNetUpdate();
+	Multicast_StopMontage(InBlendOutTime, Montage);
+}
+
+void AALSBaseCharacter::Multicast_StopMontage_Implementation(const float InBlendOutTime, const UAnimMontage* Montage)
+{
+	if (GetMesh()->GetAnimInstance() && !IsLocallyControlled())
+	{
+		GetMesh()->GetAnimInstance()->Montage_Stop(InBlendOutTime, Montage);
 	}
 }
 
@@ -930,6 +973,8 @@ void AALSBaseCharacter::OnMovementModeChanged(EMovementMode PrevMovementMode, ui
 
 void AALSBaseCharacter::OnMovementStateChanged(const EALSMovementState PreviousState)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::OnMovementStateChanged);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
 	if (MovementState == EALSMovementState::InAir)
 	{
 		if (MovementAction == EALSMovementAction::None)
@@ -956,6 +1001,8 @@ void AALSBaseCharacter::OnMovementStateChanged(const EALSMovementState PreviousS
 
 void AALSBaseCharacter::OnMovementActionChanged(const EALSMovementAction PreviousAction)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::OnMovementActionChanged);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
 	// Make the character crouch if performing a roll.
 	if (MovementAction == EALSMovementAction::Rolling)
 	{
@@ -982,6 +1029,8 @@ void AALSBaseCharacter::OnMovementActionChanged(const EALSMovementAction Previou
 
 void AALSBaseCharacter::OnStanceChanged(const EALSStance PreviousStance)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::OnStanceChanged);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
 	if (CameraBehavior)
 	{
 		CameraBehavior->Stance = Stance;
@@ -992,6 +1041,8 @@ void AALSBaseCharacter::OnStanceChanged(const EALSStance PreviousStance)
 
 void AALSBaseCharacter::OnRotationModeChanged(EALSRotationMode PreviousRotationMode)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::OnRotationModeChanged);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
 	if (RotationMode == EALSRotationMode::VelocityDirection && ViewMode == EALSViewMode::FirstPerson)
 	{
 		// If the new rotation mode is Velocity Direction and the character is in First Person,
@@ -1017,6 +1068,8 @@ void AALSBaseCharacter::OnGaitChanged(const EALSGait PreviousGait)
 
 void AALSBaseCharacter::OnViewModeChanged(const EALSViewMode PreviousViewMode)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::OnViewModeChanged);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
 	if (ViewMode == EALSViewMode::ThirdPerson)
 	{
 		if (RotationMode == EALSRotationMode::VelocityDirection || RotationMode == EALSRotationMode::LookingDirection)
@@ -1597,6 +1650,7 @@ void AALSBaseCharacter::LookingDirectionAction_Implementation()
 	SetDesiredRotationMode(EALSRotationMode::LookingDirection);
 	SetRotationMode(EALSRotationMode::LookingDirection);
 }
+
 
 void AALSBaseCharacter::ReplicatedRagdollStart()
 {

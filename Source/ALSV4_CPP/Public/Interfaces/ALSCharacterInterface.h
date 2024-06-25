@@ -29,7 +29,7 @@ public:
 	virtual UPrimitiveComponent* GetPrimitiveComponent() = 0;
 	virtual IALSCharacterMovementInterface* GetALSCharacterMovementInterface() const = 0;
 	virtual IALSGravityMovementInterface* GetALSGravityMovementInterface() const = 0;
-
+	
 	// virtual void GravityDirectionChanged(EGravityDirectionMode OldGravityDirectionMode, EGravityDirectionMode CurrentGravityDirectionMode) = 0;
 
 
