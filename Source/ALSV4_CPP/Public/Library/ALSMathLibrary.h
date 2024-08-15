@@ -4,9 +4,9 @@
 #pragma once
 
 #include "ALSCharacterEnumLibrary.h"
-
 #include "Kismet/KismetSystemLibrary.h"
 #include "CoreMinimal.h"
+#include "Engine/World.h"
 #include "Library/ALSCharacterStructLibrary.h"
 #include "ALSMathLibrary.generated.h"
 

@@ -5,6 +5,7 @@
 #include "Character/Animation/Notify/ALSNotifyStateEarlyBlendOut.h"
 #include "Animation/AnimInstance.h"
 #include "Character/ALSBaseCharacter.h"
+#include "Components/SkeletalMeshComponent.h"
 
 void UALSNotifyStateEarlyBlendOut::NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
                                               float FrameDeltaTime, const FAnimNotifyEventReference& EventReference)

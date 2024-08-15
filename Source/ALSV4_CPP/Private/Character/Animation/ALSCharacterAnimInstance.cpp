@@ -6,15 +6,13 @@
 #include "Character/ALSBaseCharacter.h"
 #include "Library/ALSMathLibrary.h"
 #include "Components/ALSDebugComponent.h"
-
+#include "Components/SkeletalMeshComponent.h"
 #include "Curves/CurveFloat.h"
 #include "Curves/CurveVector.h"
-
+#include "Engine/World.h"
 #include "TimerManager.h"
-
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "Net/UnrealNetwork.h"
 
 
 static const FName NAME_BasePose_CLF(TEXT("BasePose_CLF"));
