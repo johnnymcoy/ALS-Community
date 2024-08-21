@@ -24,10 +24,10 @@ class ALSV4_CPP_API IALSCharacterInterface
 
 public:
 
-	virtual void Ragdoll() = 0;
-	virtual USkeletalMeshComponent* GetCharacterMesh() = 0;
-	virtual UPrimitiveComponent* GetPrimitiveComponent() = 0;
-	virtual IALSCharacterMovementInterface* GetALSCharacterMovementInterface() const = 0;
+	// virtual void Ragdoll() = 0;
+	// virtual USkeletalMeshComponent* GetCharacterMesh() = 0;
+	// virtual UPrimitiveComponent* GetPrimitiveComponent() = 0;
+	// virtual IALSCharacterMovementInterface* GetALSCharacterMovementInterface() const = 0;
 	virtual IALSGravityMovementInterface* GetALSGravityMovementInterface() const = 0;
 	
 	// virtual void GravityDirectionChanged(EGravityDirectionMode OldGravityDirectionMode, EGravityDirectionMode CurrentGravityDirectionMode) = 0;

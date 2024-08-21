@@ -12,7 +12,7 @@
 #include "GameFramework/Character.h"
 #include "Interfaces/ALSCharacterInterface.h"
 #include "Character/ALSCharacterMovementComponent.h"
-#include "Interfaces/CustomCharacter.h"
+#include "Character/CharacterBase.h"
 #include "ALSBaseCharacter.generated.h"
 
 // forward declarations
@@ -29,7 +29,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FRagdollStateChangedSignature, bool,
  * Base character class
  */
 UCLASS(BlueprintType)
-class ALSV4_CPP_API AALSBaseCharacter : public ACharacter, public IALSCharacterInterface, public ICustomCharacter
+class ALSV4_CPP_API AALSBaseCharacter : public ACharacterBase, public IALSCharacterInterface
 {
 	GENERATED_BODY()
 
@@ -42,19 +42,17 @@ public:
 		return MyCharacterMovementComponent;
 	}
 	
-	FORCEINLINE virtual IALSCharacterMovementInterface* GetALSCharacterMovementInterface() const override
-	{
-		return Cast<IALSCharacterMovementInterface>(MyCharacterMovementComponent);
-	}
+	// FORCEINLINE virtual IALSCharacterMovementInterface* GetALSCharacterMovementInterface() const override
+	// {
+	// 	return Cast<IALSCharacterMovementInterface>(MyCharacterMovementComponent);
+	// }
 	FORCEINLINE virtual IALSGravityMovementInterface* GetALSGravityMovementInterface() const override
 	{
 		return Cast<IALSGravityMovementInterface>(MyCharacterMovementComponent);
 	}
 	
 	virtual void Ragdoll() override;
-	virtual UPrimitiveComponent* GetPrimitiveComponent() override;
 
-	virtual USkeletalMeshComponent* GetCharacterMesh() override {return GetMesh();};
 
 
 	virtual void Tick(float DeltaTime) override;

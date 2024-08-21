@@ -83,6 +83,7 @@ float AALSBaseCharacter::PlayReplicatedMontage(UAnimMontage* MontageToPlay, cons
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::PlayReplicatedMontage);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+	Super::PlayReplicatedMontage(MontageToPlay, InPlayRate, ReturnValueType, InTimeToStartMontageAt, bStopAllMontages);
 	float AnimDuration = 0.0f;
 	if(GetMesh() != nullptr && GetMesh()->GetAnimInstance() != nullptr)
 	{
@@ -96,6 +97,7 @@ void AALSBaseCharacter::StopReplicatedMontage(const float InBlendOutTime, const 
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::StopReplicatedMontage);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+	Super::StopReplicatedMontage(InBlendOutTime, Montage);
 	if(GetMesh() != nullptr && GetMesh()->GetAnimInstance() != nullptr)
 	{
 		GetMesh()->GetAnimInstance()->Montage_Stop(InBlendOutTime, Montage);
@@ -162,12 +164,8 @@ void AALSBaseCharacter::BeginPlay()
 
 void AALSBaseCharacter::Ragdoll()
 {
+	Super::Ragdoll();
 	RagdollStart();
-}
-
-UPrimitiveComponent* AALSBaseCharacter::GetPrimitiveComponent()
-{
-	return Cast<UPrimitiveComponent>(RootComponent);
 }
 
 void AALSBaseCharacter::Tick(float DeltaTime)
