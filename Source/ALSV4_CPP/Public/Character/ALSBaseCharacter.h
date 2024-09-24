@@ -50,6 +50,9 @@ public:
 	{
 		return Cast<IALSGravityMovementInterface>(MyCharacterMovementComponent);
 	}
+
+	UPROPERTY(EditAnywhere, Category="Debug|Gravity")
+	float GravityMultiplier = 9.8f;
 	
 	virtual void Ragdoll() override;
 

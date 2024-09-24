@@ -22,6 +22,8 @@ class ALSV4_CPP_API IALSGravityMovementInterface
 public:
 
 	//~ Gravity Functions	~//
+
+	virtual FVector GetGravityDirection() const = 0;
 	
 	/** Sets a new fixed gravity direction.
 	 * @note It can be influenced by GravityScale
@@ -55,7 +57,7 @@ public:
 	 * @param NewGravitySegmentEnd - end point of the segment line */
 	virtual void SetSegmentGravityDirection(const FVector& NewGravitySegmentStart, const FVector& NewGravitySegmentEnd) = 0;
 	
-	/** Sets a new spline which gravity direction points to.LaunchVelLaunchVel) = 0;
+	/** Sets a new spline which gravity direction points to.LaunchVelLaunchVel) = 0; */
 
 	/** Sets a new infinite plane which gravity direction points to.
 	 * @note It can be influenced by GravityScale

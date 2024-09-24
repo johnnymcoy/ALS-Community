@@ -318,10 +318,7 @@ void UALSCharacterMovementComponent::SetFixedGravityDirection(const FVector& New
 	bDirtyGravityDirection = true;
 	GravityDirectionMode = EGravityDirectionMode::Fixed;
 	GravityVectorA = NewFixedGravityDirection;
-
 	GravityDirectionChanged(OldGravityDirectionMode);
-
-
 }
 
 void UALSCharacterMovementComponent::MulticastSetFixedGravityDirection_Implementation(
@@ -858,6 +855,65 @@ void UALSCharacterMovementComponent::LaunchCharacter(const FVector& LaunchVel)
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement_Gravity);
 	Launch(LaunchVel);
+}
+
+FVector UALSCharacterMovementComponent::GetGravityDirection() const
+{
+    switch (GravityDirectionMode)
+    {
+        case EGravityDirectionMode::Fixed:
+            // Gravity is in a fixed direction (GravityVectorA).
+            return GravityVectorA.GetSafeNormal();
+
+        case EGravityDirectionMode::Point:
+            // Gravity pulls towards a specific point (like a planet center).
+            if (GravityActor)
+            {
+                return (GravityActor->GetActorLocation() - GetOwner()->GetActorLocation()).GetSafeNormal();
+            }
+            return (GravityVectorA - GetOwner()->GetActorLocation()).GetSafeNormal();
+
+        case EGravityDirectionMode::Line:
+        case EGravityDirectionMode::Segment:
+            // Gravity is along a line or segment between two points (GravityVectorA and GravityVectorB).
+            return (GravityVectorB - GravityVectorA).GetSafeNormal();
+
+		case EGravityDirectionMode::Spline:
+        case EGravityDirectionMode::SplineTangent:
+        case EGravityDirectionMode::SplinePlane:
+            // Gravity follows the tangent of a spline (typically along a path).
+            if (const USplineComponent* Spline = Cast<USplineComponent>(GravityActor->GetComponentByClass(USplineComponent::StaticClass())))
+            {
+                FVector ClosestPoint = Spline->FindLocationClosestToWorldLocation(GetOwner()->GetActorLocation(), ESplineCoordinateSpace::World);
+                return Spline->FindTangentClosestToWorldLocation(ClosestPoint, ESplineCoordinateSpace::World).GetSafeNormal();
+            }
+            break;
+
+        case EGravityDirectionMode::Plane:
+            // Gravity is along a plane normal (GravityVectorB is the normal).
+            return GravityVectorB.GetSafeNormal();
+
+        case EGravityDirectionMode::Box:
+            // Gravity is towards the center of a box.
+            return (GravityVectorA - GetOwner()->GetActorLocation()).GetSafeNormal();
+
+        case EGravityDirectionMode::Collision:
+            // Gravity is derived from a collision (e.g., based on the normal of the collision surface).
+            if (GravityActor)
+            {
+                const UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(GravityActor->GetRootComponent());
+                if (PrimitiveComponent)
+                {
+                    return PrimitiveComponent->GetComponentLocation().GetSafeNormal();
+                }
+            }
+            break;
+
+        default:
+            break;
+    }
+    // Fallback to world gravity (e.g., downwards) if no specific direction is set.
+    return FVector(0.0f, 0.0f, -1.0f);
 }
 
 void UALSCharacterMovementComponent::UpdateGravity()

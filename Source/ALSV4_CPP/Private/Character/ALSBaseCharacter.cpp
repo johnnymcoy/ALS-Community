@@ -860,8 +860,17 @@ void AALSBaseCharacter::RagdollUpdate(float DeltaTime)
 	                                                            LastRagdollVelocity.Size());
 	GetMesh()->SetAllMotorsAngularDriveParams(SpringValue, 0.0f, 0.0f, false);
 
-	// Disable Gravity if falling faster than -4000 to prevent continual acceleration.
-	// This also prevents the ragdoll from going through the floor.
+	//@ TODO Needs to be properly Tested, currently don't work as required	//
+	// GetMesh()->SetEnableGravity(false);  // Disable default gravity
+	// // Get the current gravity direction from the movement component (assuming this is set based on the room's gravity).
+	// const FVector GravityDirection = GetALSMovementComponent()->GetGravityDirection(); // Assuming you have a method for this
+	// const FVector GravityForce = GravityDirection * (GetCharacterMovement()->GravityScale * GravityMultiplier); // 980.0f is Earth's gravity
+	// UE_LOG(LogGravity, Warning, TEXT("Gravity Direction: %s  Force: %s "), *GravityDirection.ToString(), *GravityForce.ToString());
+	// GetMesh()->AddForce(GravityForce * GetMesh()->GetMass(), NAME_Pelvis, true);
+	
+
+	// // Disable Gravity if falling faster than -4000 to prevent continual acceleration.
+	// // This also prevents the ragdoll from going through the floor.
 	const bool bEnableGrav = LastRagdollVelocity.Z > -4000.0f;
 	GetMesh()->SetEnableGravity(bEnableGrav);
 

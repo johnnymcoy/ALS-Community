@@ -173,6 +173,8 @@ class ALSV4_CPP_API UALSCharacterMovementComponent : public UCharacterMovementCo
 
 	//~ IALSGravityMovementInterface Functions	~//
 
+	virtual FVector GetGravityDirection() const override;
+
 	/**
 	 * Update values related to gravity.
 	 */
