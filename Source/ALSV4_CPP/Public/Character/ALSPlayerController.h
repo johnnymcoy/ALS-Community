@@ -33,17 +33,13 @@ protected:
 
 	void SetupCamera();
 
-	UFUNCTION()
-	void ForwardMovementAction(const FInputActionValue& Value);
+	virtual void ForwardMovementAction(const FInputActionValue& Value) override;
 
-	UFUNCTION()
-	void RightMovementAction(const FInputActionValue& Value);
+	virtual void RightMovementAction(const FInputActionValue& Value) override;
 
-	UFUNCTION()
-	virtual void CameraUpAction(const FInputActionValue& Value);
+	virtual void CameraUpAction(const FInputActionValue& Value) override;
 
-	UFUNCTION()
-	virtual void CameraRightAction(const FInputActionValue& Value);
+	virtual void CameraRightAction(const FInputActionValue& Value) override;
 
 	UFUNCTION()
 	void JumpAction(const FInputActionValue& Value);

@@ -21,9 +21,12 @@ public class ALSV4_CPP : ModuleRules
 				"PhysicsCore", 
 				"Niagara", 
 				"EnhancedInput", 
-				"BaseHelpers"
+				"BaseHelpers",
+				"Interaction",
+				"AnimationBudgetAllocator"
+
 			});
 
-		PrivateDependencyModuleNames.AddRange(new[] {"Slate", "SlateCore"});
+		PrivateDependencyModuleNames.AddRange(new[] {"Slate", "SlateCore", "BaseHelpers"});
 	}
 }

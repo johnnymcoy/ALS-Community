@@ -24,7 +24,7 @@ void AALSPlayerController::OnPossess(APawn* NewPawn)
 		SetupCamera();
 	}
 
-	SetupInputs();
+	// SetupInputs();
 
 	if (!IsValid(PossessedCharacter)) return;
 	
@@ -40,7 +40,7 @@ void AALSPlayerController::OnRep_Pawn()
 	Super::OnRep_Pawn();
 	PossessedCharacter = Cast<AALSBaseCharacter>(GetPawn());
 	SetupCamera();
-	SetupInputs();
+	// SetupInputs();
 	
 	if (!PossessedCharacter) return;
 
@@ -71,29 +71,38 @@ void AALSPlayerController::SetupInputComponent()
 void AALSPlayerController::BindActions(UInputMappingContext* Context)
 {
 	Super::BindActions(Context);
-	if (Context)
-	{
-		const TArray<FEnhancedActionKeyMapping>& Mappings = Context->GetMappings();
-		UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(InputComponent);
-		if (EnhancedInputComponent)
-		{
-			// There may be more than one keymapping assigned to one action. So, first filter duplicate action entries to prevent multiple delegate bindings
-			TSet<const UInputAction*> UniqueActions;
-			for (const FEnhancedActionKeyMapping& Keymapping : Mappings)
-			{
-				UniqueActions.Add(Keymapping.Action);
-			}
-			for (const UInputAction* UniqueAction : UniqueActions)
-			{
-				EnhancedInputComponent->BindAction(UniqueAction, ETriggerEvent::Triggered, Cast<UObject>(this), UniqueAction->GetFName());
-			}
-		}
-	}
+	// if (Context)
+	// {
+	// 	const TArray<FEnhancedActionKeyMapping>& Mappings = Context->GetMappings();
+	// 	UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(InputComponent);
+	// 	if (EnhancedInputComponent)
+	// 	{
+	// 		// There may be more than one keymapping assigned to one action. So, first filter duplicate action entries to prevent multiple delegate bindings
+	// 		TSet<const UInputAction*> UniqueActions;
+	// 		for (const FEnhancedActionKeyMapping& Keymapping : Mappings)
+	// 		{
+	// 			UniqueActions.Add(Keymapping.Action);
+	// 		}
+	// 		for (const UInputAction* UniqueAction : UniqueActions)
+	// 		{
+	// 			EnhancedInputComponent->BindAction(UniqueAction, ETriggerEvent::Triggered, Cast<UObject>(this), UniqueAction->GetFName());
+	// 		}
+	// 	}
+	// }
 }
 
 void AALSPlayerController::SetupInputs()
 {
 	Super::SetupInputs();
+	// if(UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
+	// {
+	// 	FModifyContextOptions Options;
+	// 	Options.bForceImmediately = 1;
+	// 	Subsystem->AddMappingContext(DefaultInputMappingContext, 1, Options);
+	// 	// Subsystem->AddMappingContext(DebugInputMappingContext, 2, Options);
+	// 	BindActions(DefaultInputMappingContext);
+	// 	// BindActions(DebugInputMappingContext);
+	// }
 	if (PossessedCharacter)
 	{
 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
@@ -106,9 +115,11 @@ void AALSPlayerController::SetupInputs()
 			{
 				// Do only if we have debug component
 				Subsystem->AddMappingContext(DebugInputMappingContext, 0, Options);
+				BindActions(DebugInputMappingContext);
 			}
+			BindActions(DefaultInputMappingContext);
 		}
-	}
+	} 
 }
 
 void AALSPlayerController::SetupCamera()
@@ -123,6 +134,7 @@ void AALSPlayerController::SetupCamera()
 
 void AALSPlayerController::ForwardMovementAction(const FInputActionValue& Value)
 {
+	Super::ForwardMovementAction(Value);
 	if (PossessedCharacter)
 	{
 		PossessedCharacter->ForwardMovementAction(Value.GetMagnitude());
@@ -131,6 +143,7 @@ void AALSPlayerController::ForwardMovementAction(const FInputActionValue& Value)
 
 void AALSPlayerController::RightMovementAction(const FInputActionValue& Value)
 {
+	Super::RightMovementAction(Value);
 	if(PossessedCharacter)
 	{
 		PossessedCharacter->RightMovementAction(Value.GetMagnitude());
@@ -139,6 +152,7 @@ void AALSPlayerController::RightMovementAction(const FInputActionValue& Value)
 
 void AALSPlayerController::CameraUpAction(const FInputActionValue& Value)
 {
+	Super::CameraUpAction(Value);
 	if(PossessedCharacter)
 	{
 		PossessedCharacter->CameraUpAction(Value.GetMagnitude());
@@ -147,6 +161,7 @@ void AALSPlayerController::CameraUpAction(const FInputActionValue& Value)
 
 void AALSPlayerController::CameraRightAction(const FInputActionValue& Value)
 {
+	Super::CameraRightAction(Value);
 	if (PossessedCharacter)
 	{
 		PossessedCharacter->CameraRightAction(Value.GetMagnitude());

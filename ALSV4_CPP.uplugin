@@ -39,6 +39,10 @@
 		{
 			"Name": "BaseHelpers",
 			"Enabled": true
+		},
+		{
+			"Name" : "Interaction",
+			"Enabled" : true
 		}
 	]
 }

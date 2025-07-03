@@ -3,6 +3,8 @@
 
 
 #include "Character/ALSBaseCharacter.h"
+
+#include "SkeletalMeshComponentBudgeted.h"
 #include "Character/Animation/ALSCharacterAnimInstance.h"
 #include "Character/Animation/ALSPlayerCameraBehavior.h"
 #include "Library/ALSMathLibrary.h"
@@ -14,6 +16,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "NavAreas/NavArea_Obstacle.h"
 #include "TimerManager.h"
+#include "Interfaces/ALSAnimInterface.h"
 #include "Net/UnrealNetwork.h"
 
 
@@ -29,10 +32,18 @@ const FName NAME_spine_03(TEXT("spine_03"));
 
 DECLARE_CYCLE_STAT(TEXT("ALS Base Character (All Functions)"), STATGROUP_ALS_Base_Character, STATGROUP_ALS);
 DECLARE_CYCLE_STAT(TEXT("ALS Base Character Tick"), STATGROUP_ALS_Base_Character_Tick, STATGROUP_ALS);
+DECLARE_CYCLE_STAT(TEXT("ALS Base Character UpdateMovement"), STATGROUP_ALS_Base_Character_UpdateMovement, STATGROUP_ALS);
+DECLARE_CYCLE_STAT(TEXT("ALS Base Character GroundedRotation"), STATGROUP_ALS_Base_Character_UpdateGroundedRotation, STATGROUP_ALS);
+DECLARE_CYCLE_STAT(TEXT("ALS Base Character AirRotation"), STATGROUP_ALS_Base_Character_AirRotation, STATGROUP_ALS);
+DECLARE_CYCLE_STAT(TEXT("ALS Base Character RagdollUpdate"), STATGROUP_ALS_Base_Character_RagdollUpdate, STATGROUP_ALS);
+DECLARE_CYCLE_STAT(TEXT("ALS Base Character SmoothRotation"), STATGROUP_ALS_Base_Character_SmoothCharacterRotation, STATGROUP_ALS);
+DECLARE_CYCLE_STAT(TEXT("ALS (All Functions)"), STATGROUP_ALS_All, STATGROUP_ALS);
 
 
 AALSBaseCharacter::AALSBaseCharacter(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer.SetDefaultSubobjectClass<UALSCharacterMovementComponent>(CharacterMovementComponentName))
+: Super(ObjectInitializer
+		.SetDefaultSubobjectClass<UALSCharacterMovementComponent>(CharacterMovementComponentName)
+		.SetDefaultSubobjectClass<USkeletalMeshComponentBudgeted>(ACharacter::MeshComponentName))
 {
 	PrimaryActorTick.bCanEverTick = true;
 	bUseControllerRotationYaw = false;
@@ -41,12 +52,40 @@ AALSBaseCharacter::AALSBaseCharacter(const FObjectInitializer& ObjectInitializer
 	
 	SetupCapsuleComponent();	
 	SetupMeshComponent();
+	UDataTable* MovementDT =  UBaseHelpersBPLib::GetDefaultDataTable("/ALSV4_CPP/AdvancedLocomotionV4/Data/DataTables/MovementModelTable");
+	MovementModel.DataTable = MovementDT;
+	MovementModel.RowName = FName("Normal");
 }
+
+FVector AALSBaseCharacter::GetLeftHandGoal() const
+{
+	if(GetMesh() != nullptr)
+	{
+		return GetMesh()->GetSocketLocation("Hand_L");
+	}
+	return FVector::ZeroVector;
+}
+
+FVector AALSBaseCharacter::GetRightHandGoal() const
+{
+	if(GetMesh() != nullptr)
+	{
+		return GetMesh()->GetSocketLocation("Hand_R");
+	}
+	return FVector::ZeroVector;
+}
+
+bool AALSBaseCharacter::GetIsMantling() const
+{
+	return GetMovementState() == EALSMovementState::Mantling;
+}
+
 
 void AALSBaseCharacter::PostInitializeComponents()
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::PostInitializeComponents);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
 
 	Super::PostInitializeComponents();
 	MyCharacterMovementComponent = Cast<UALSCharacterMovementComponent>(Super::GetMovementComponent());
@@ -74,6 +113,8 @@ void AALSBaseCharacter::OnBreakfall_Implementation()
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::OnBreakfall_Implementation);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
+
 
 	Replicated_PlayMontage(GetRollAnimation(), 1.35);
 }
@@ -83,6 +124,7 @@ float AALSBaseCharacter::PlayReplicatedMontage(UAnimMontage* MontageToPlay, cons
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::PlayReplicatedMontage);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
 	Super::PlayReplicatedMontage(MontageToPlay, InPlayRate, ReturnValueType, InTimeToStartMontageAt, bStopAllMontages);
 	float AnimDuration = 0.0f;
 	if(GetMesh() != nullptr && GetMesh()->GetAnimInstance() != nullptr)
@@ -97,6 +139,7 @@ void AALSBaseCharacter::StopReplicatedMontage(const float InBlendOutTime, const 
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::StopReplicatedMontage);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
 	Super::StopReplicatedMontage(InBlendOutTime, Montage);
 	if(GetMesh() != nullptr && GetMesh()->GetAnimInstance() != nullptr)
 	{
@@ -109,6 +152,7 @@ void AALSBaseCharacter::Replicated_PlayMontage_Implementation(UAnimMontage* Mont
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::Replicated_PlayMontage_Implementation);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
 	// Roll: Simply play a Root Motion Montage.
 	if (GetMesh()->GetAnimInstance())
 	{
@@ -122,8 +166,14 @@ void AALSBaseCharacter::BeginPlay()
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::BeginPlay);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
 
 	Super::BeginPlay();
+	//@ TEST Optimizations 
+	if(GetMesh() != nullptr && GetMesh()->GetAnimInstance() != nullptr)
+	{
+		AnimInstanceInterface = Cast<IALSAnimInterface>(GetMesh()->GetAnimInstance());
+	}
 
 	// If we're in networked game, disable curved movement
 	bEnableNetworkOptimizations = !IsNetMode(NM_Standalone);
@@ -164,8 +214,22 @@ void AALSBaseCharacter::BeginPlay()
 
 void AALSBaseCharacter::Ragdoll()
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
 	Super::Ragdoll();
-	RagdollStart();
+	ReplicatedRagdollStart();
+}
+
+void AALSBaseCharacter::RagdollStop()
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
+	Super::RagdollStop();
+	ReplicatedRagdollEnd();
+}
+
+void AALSBaseCharacter::RagdollFrozen(const bool bFrozen)
+{
+	Super::RagdollFrozen(bFrozen);
+	bDisableRagdollUpdate = bFrozen;
 }
 
 void AALSBaseCharacter::Tick(float DeltaTime)
@@ -173,6 +237,7 @@ void AALSBaseCharacter::Tick(float DeltaTime)
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::Tick);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character_Tick);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
 
 	Super::Tick(DeltaTime);
 
@@ -186,7 +251,15 @@ void AALSBaseCharacter::Tick(float DeltaTime)
 	}
 	else if(MovementState == EALSMovementState::InAir)
 	{
-		UpdateInAirRotation(DeltaTime);
+		if(GetIsFlying())
+		{
+			UpdateCharacterMovement();
+			UpdateGroundedRotation(DeltaTime);
+		}
+		else
+		{
+			UpdateInAirRotation(DeltaTime);
+		}
 	}
 	else if(MovementState == EALSMovementState::Ragdoll)
 	{
@@ -202,20 +275,24 @@ void AALSBaseCharacter::RagdollStart()
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::RagdollStart);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
 	if(GetWorld() == nullptr){return;} //- Added world Check..
 	if (RagdollStateChangedDelegate.IsBound())
 	{
 		RagdollStateChangedDelegate.Broadcast(true);
 	}
 
+	// if(bRagdollServerFix)
+	// {
 	/** When Networked, disables replicate movement reset TargetRagdollLocation and ServerRagdollPull variable
 	and if the host is a dedicated server, change character mesh optimisation option to avoid z-location bug*/
 	MyCharacterMovementComponent->bIgnoreClientMovementErrorChecksAndCorrection = 1;
-	if (UKismetSystemLibrary::IsDedicatedServer(GetWorld()))
+	if(UKismetSystemLibrary::IsDedicatedServer(GetWorld()))
 	{
 		DefVisBasedTickOp = GetMesh()->VisibilityBasedAnimTickOption;
 		GetMesh()->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
 	}
+	// }
 	TargetRagdollLocation = GetMesh()->GetSocketLocation(NAME_Pelvis);
 	ServerRagdollPull = 0;
 
@@ -225,7 +302,11 @@ void AALSBaseCharacter::RagdollStart()
 
 	// Step 1: Clear the Character Movement Mode and set the Movement State to Ragdoll
 	GetCharacterMovement()->SetMovementMode(MOVE_None);
-	SetMovementState(EALSMovementState::Ragdoll);
+	// @ BUG this Causes the Ragdoll glitch
+	if(bSetMovementStateRagdoll)
+	{
+		SetMovementState(EALSMovementState::Ragdoll);
+	}
 
 	// Step 2: Disable capsule collision and enable mesh physics simulation starting from the pelvis.
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -240,8 +321,7 @@ void AALSBaseCharacter::RagdollStart()
 	}
 
 	// Fixes character mesh is showing default A pose for a split-second just before ragdoll ends in listen server games
-	GetMesh()->bOnlyAllowAutonomousTickPose = true;
-
+	GetMesh()->bOnlyAllowAutonomousTickPose = true;//bOnlyAllowAutonomousTickPoseWhenRagdoll;
 	SetReplicateMovement(false);
 }
 
@@ -249,6 +329,7 @@ void AALSBaseCharacter::RagdollEnd()
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::RagdollEnd);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+		SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
 	/** Re-enable Replicate Movement and if the host is a dedicated server set mesh visibility based anim
 	tick option back to default*/
 
@@ -302,6 +383,7 @@ void AALSBaseCharacter::Server_SetMeshLocationDuringRagdoll_Implementation(FVect
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::Server_SetMeshLocationDuringRagdoll_Implementation);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
 	TargetRagdollLocation = MeshLocation;
 }
 
@@ -309,11 +391,17 @@ void AALSBaseCharacter::SetMovementState(const EALSMovementState NewState, bool 
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::SetMovementState);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
 	if (bForce || MovementState != NewState)
 	{
 		PrevMovementState = MovementState;
 		MovementState = NewState;
 		OnMovementStateChanged(PrevMovementState);
+		//@ TODO TEST Performance
+		if(AnimInstanceInterface != nullptr)
+		{
+			AnimInstanceInterface->SetMovementState(MovementState);
+		}
 	}
 }
 
@@ -321,6 +409,7 @@ void AALSBaseCharacter::SetMovementAction(const EALSMovementAction NewAction, bo
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::SetMovementAction);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
 	if (bForce || MovementAction != NewAction)
 	{
 		const EALSMovementAction Prev = MovementAction;
@@ -333,11 +422,17 @@ void AALSBaseCharacter::SetStance(const EALSStance NewStance, bool bForce)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::SetStance);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
 	if (bForce || Stance != NewStance)
 	{
 		const EALSStance Prev = Stance;
 		Stance = NewStance;
 		OnStanceChanged(Prev);
+		//@ TEST Performance 
+		if(AnimInstanceInterface != nullptr)
+		{
+			AnimInstanceInterface->SetStance(Stance);
+		}
 	}
 }
 
@@ -345,18 +440,31 @@ void AALSBaseCharacter::SetOverlayOverrideState(int32 NewState)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::SetOverlayOverrideState);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
 	OverlayOverrideState = NewState;
+	//@ TEST Performance 
+	if(AnimInstanceInterface != nullptr)
+	{
+		AnimInstanceInterface->SetOverlayOverrideState(OverlayOverrideState);
+	}
 }
 
 void AALSBaseCharacter::SetGait(const EALSGait NewGait, bool bForce)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::SetGait);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
 	if (bForce || Gait != NewGait)
 	{
 		const EALSGait Prev = Gait;
 		Gait = NewGait;
 		OnGaitChanged(Prev);
+		//@ TEST Performance 
+		if(AnimInstanceInterface != nullptr)
+		{
+			AnimInstanceInterface->SetGait(Gait);
+		}
+
 	}
 }
 
@@ -365,11 +473,16 @@ void AALSBaseCharacter::SetDesiredStance(EALSStance NewStance)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::SetDesiredStance);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
 
 	DesiredStance = NewStance;
 	if (GetLocalRole() == ROLE_AutonomousProxy)
 	{
 		Server_SetDesiredStance(NewStance);
+	}
+	if(AnimInstanceInterface != nullptr)
+	{
+		AnimInstanceInterface->SetStance(DesiredStance);
 	}
 }
 
@@ -377,6 +490,7 @@ void AALSBaseCharacter::Server_SetDesiredStance_Implementation(EALSStance NewSta
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::Server_SetDesiredStance_Implementation);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
 	SetDesiredStance(NewStance);
 }
 
@@ -384,6 +498,7 @@ void AALSBaseCharacter::SetDesiredGait(const EALSGait NewGait)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::SetDesiredGait);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
 
 	DesiredGait = NewGait;
 	if (GetLocalRole() == ROLE_AutonomousProxy)
@@ -396,6 +511,7 @@ void AALSBaseCharacter::Server_SetDesiredGait_Implementation(EALSGait NewGait)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::Server_SetDesiredGait_Implementation);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
 
 	SetDesiredGait(NewGait);
 }
@@ -404,11 +520,16 @@ void AALSBaseCharacter::SetDesiredRotationMode(EALSRotationMode NewRotMode)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::SetDesiredRotationMode);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
 
 	DesiredRotationMode = NewRotMode;
 	if (GetLocalRole() == ROLE_AutonomousProxy)
 	{
 		Server_SetDesiredRotationMode(NewRotMode);
+	}
+	if(AnimInstanceInterface != nullptr)
+	{
+		AnimInstanceInterface->SetRotationMode(DesiredRotationMode);
 	}
 }
 
@@ -416,6 +537,7 @@ void AALSBaseCharacter::Server_SetDesiredRotationMode_Implementation(EALSRotatio
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::Server_SetDesiredRotationMode_Implementation);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
 
 	SetDesiredRotationMode(NewRotMode);
 }
@@ -424,6 +546,7 @@ void AALSBaseCharacter::SetRotationMode(const EALSRotationMode NewRotationMode, 
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::SetRotationMode);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
 
 	if (bForce || RotationMode != NewRotationMode)
 	{
@@ -435,14 +558,18 @@ void AALSBaseCharacter::SetRotationMode(const EALSRotationMode NewRotationMode, 
 		{
 			Server_SetRotationMode(NewRotationMode, bForce);
 		}
+		if(AnimInstanceInterface != nullptr)
+		{
+			AnimInstanceInterface->SetRotationMode(RotationMode);
+		}
 	}
 }
-
 
 void AALSBaseCharacter::Server_SetRotationMode_Implementation(EALSRotationMode NewRotationMode, bool bForce)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::Server_SetRotationMode_Implementation);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
 
 	SetRotationMode(NewRotationMode, bForce);
 }
@@ -451,6 +578,7 @@ void AALSBaseCharacter::SetViewMode(const EALSViewMode NewViewMode, bool bForce)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::SetViewMode);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
 
 	if (bForce || ViewMode != NewViewMode)
 	{
@@ -462,6 +590,10 @@ void AALSBaseCharacter::SetViewMode(const EALSViewMode NewViewMode, bool bForce)
 		{
 			Server_SetViewMode(NewViewMode, bForce);
 		}
+		if(AnimInstanceInterface != nullptr)
+		{
+			AnimInstanceInterface->SetViewMode(ViewMode);
+		}
 	}
 }
 
@@ -469,6 +601,8 @@ void AALSBaseCharacter::Server_SetViewMode_Implementation(EALSViewMode NewViewMo
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::Server_SetViewMode_Implementation);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
+
 
 	SetViewMode(NewViewMode, bForce);
 }
@@ -477,6 +611,8 @@ void AALSBaseCharacter::SetOverlayState(const EALSOverlayState NewState, bool bF
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::SetOverlayState);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
+
 
 	if (bForce || OverlayState != NewState)
 	{
@@ -488,6 +624,10 @@ void AALSBaseCharacter::SetOverlayState(const EALSOverlayState NewState, bool bF
 		{
 			Server_SetOverlayState(NewState, bForce);
 		}
+		if(AnimInstanceInterface != nullptr)
+		{
+			AnimInstanceInterface->SetOverlayState(OverlayState);
+		}
 	}
 }
 
@@ -495,8 +635,12 @@ void AALSBaseCharacter::SetGroundedEntryState(EALSGroundedEntryState NewState)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::SetGroundedEntryState);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
-
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
 	GroundedEntryState = NewState;
+	if(AnimInstanceInterface != nullptr)
+	{
+		AnimInstanceInterface->SetNewGroundedEntryState(GroundedEntryState);
+	}
 }
 
 
@@ -504,7 +648,7 @@ void AALSBaseCharacter::Server_SetOverlayState_Implementation(EALSOverlayState N
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::Server_SetOverlayState_Implementation);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
-
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
 	SetOverlayState(NewState, bForce);
 }
 
@@ -512,6 +656,8 @@ void AALSBaseCharacter::EventOnLanded()
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::EventOnLanded);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
+
 
 	const float VelZ = FMath::Abs(GetCharacterMovement()->Velocity.Z);
 
@@ -535,6 +681,8 @@ void AALSBaseCharacter::EventOnLanded()
 
 void AALSBaseCharacter::Multicast_OnLanded_Implementation()
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
+
 	if (!IsLocallyControlled())
 	{
 		EventOnLanded();
@@ -543,6 +691,8 @@ void AALSBaseCharacter::Multicast_OnLanded_Implementation()
 
 void AALSBaseCharacter::EventOnJumped()
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
+
 	// Set the new In Air Rotation to the velocity rotation if speed is greater than 100.
 	InAirRotation = Speed > 100.0f ? LastVelocityRotation : GetActorRotation();
 
@@ -551,6 +701,8 @@ void AALSBaseCharacter::EventOnJumped()
 
 void AALSBaseCharacter::Server_PlayMontage_Implementation(UAnimMontage* Montage, float PlayRate)
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
+
 	if (GetMesh()->GetAnimInstance())
 	{
 		GetMesh()->GetAnimInstance()->Montage_Play(Montage, PlayRate);
@@ -562,6 +714,8 @@ void AALSBaseCharacter::Server_PlayMontage_Implementation(UAnimMontage* Montage,
 
 void AALSBaseCharacter::Multicast_PlayMontage_Implementation(UAnimMontage* Montage, float PlayRate)
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
+
 	if (GetMesh()->GetAnimInstance() && !IsLocallyControlled())
 	{
 		GetMesh()->GetAnimInstance()->Montage_Play(Montage, PlayRate);
@@ -570,6 +724,8 @@ void AALSBaseCharacter::Multicast_PlayMontage_Implementation(UAnimMontage* Monta
 
 void AALSBaseCharacter::Server_StopMontage_Implementation(const float InBlendOutTime, const UAnimMontage* Montage)
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
+
 	if (GetMesh()->GetAnimInstance())
 	{
 		GetMesh()->GetAnimInstance()->Montage_Stop(InBlendOutTime, Montage);
@@ -580,6 +736,8 @@ void AALSBaseCharacter::Server_StopMontage_Implementation(const float InBlendOut
 
 void AALSBaseCharacter::Multicast_StopMontage_Implementation(const float InBlendOutTime, const UAnimMontage* Montage)
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
+
 	if (GetMesh()->GetAnimInstance() && !IsLocallyControlled())
 	{
 		GetMesh()->GetAnimInstance()->Montage_Stop(InBlendOutTime, Montage);
@@ -622,6 +780,7 @@ void AALSBaseCharacter::SetActorLocationAndTargetRotation(FVector NewLocation, F
 
 void AALSBaseCharacter::SetMovementModel()
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::SetMovementModel);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
 
@@ -642,6 +801,8 @@ void AALSBaseCharacter::ForceUpdateCharacterState()
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::ForceUpdateCharacterState);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
+
 
 	SetGait(DesiredGait, true);
 	SetStance(DesiredStance, true);
@@ -656,6 +817,8 @@ FALSMovementSettings AALSBaseCharacter::GetTargetMovementSettings() const
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::GetTargetMovementSettings);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
+
 
 	if (RotationMode == EALSRotationMode::VelocityDirection)
 	{
@@ -699,6 +862,8 @@ bool AALSBaseCharacter::CanSprint() const
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::CanSprint);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
+
 
 	// Determine if the character is currently able to sprint based on the Rotation mode and current acceleration
 	// (input) rotation. If the character is in the Looking Rotation mode, only allow sprinting if there is full
@@ -737,6 +902,8 @@ float AALSBaseCharacter::GetAnimCurveValue(FName CurveName) const
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::GetAnimCurveValue);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
+
 
 	if(GetMesh() != nullptr && GetMesh()->GetAnimInstance())
 	{
@@ -748,6 +915,8 @@ float AALSBaseCharacter::GetAnimCurveValue(FName CurveName) const
 
 void AALSBaseCharacter::SetVisibleMesh(USkeletalMesh* NewVisibleMesh)
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
+
 	if (VisibleMesh != NewVisibleMesh)
 	{
 		const USkeletalMesh* Prev = VisibleMesh;
@@ -846,8 +1015,10 @@ void AALSBaseCharacter::RagdollUpdate(float DeltaTime)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::RagdollUpdate);
     SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
-
-	GetMesh()->bOnlyAllowAutonomousTickPose = false;
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character_RagdollUpdate);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
+	if(bDisableRagdollUpdate){return;}
+	GetMesh()->bOnlyAllowAutonomousTickPose = false;//bOnlyAllowAutonomousTickPoseWhenRagdollUpdate;
 
 	// Set the Last Ragdoll Velocity.
 	const FVector NewRagdollVel = GetMesh()->GetPhysicsLinearVelocity(NAME_root);
@@ -873,7 +1044,6 @@ void AALSBaseCharacter::RagdollUpdate(float DeltaTime)
 	// // This also prevents the ragdoll from going through the floor.
 	const bool bEnableGrav = LastRagdollVelocity.Z > -4000.0f;
 	GetMesh()->SetEnableGravity(bEnableGrav);
-
 	// Update the Actor location to follow the ragdoll.
 	SetActorLocationDuringRagdoll(DeltaTime);
 }
@@ -882,12 +1052,16 @@ void AALSBaseCharacter::SetActorLocationDuringRagdoll(float DeltaTime)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::SetActorLocationDuringRagdoll);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
-
-	if (IsLocallyControlled())
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
+	// if(bDisableSetRagdollLocation)
+	// {
+	// 	return;
+	// }
+	if(IsLocallyControlled())
 	{
 		// Set the pelvis as the target location.
 		TargetRagdollLocation = GetMesh()->GetSocketLocation(NAME_Pelvis);
-		if (!HasAuthority())
+		if(!HasAuthority())
 		{
 			Server_SetMeshLocationDuringRagdoll(TargetRagdollLocation);
 		}
@@ -896,15 +1070,25 @@ void AALSBaseCharacter::SetActorLocationDuringRagdoll(float DeltaTime)
 	// Determine whether the ragdoll is facing up or down and set the target rotation accordingly.
 	const FRotator PelvisRot = GetMesh()->GetSocketRotation(NAME_Pelvis);
 
+	// if(bRagdollFacing)
+	// {
 	if (bReversedPelvis) {
 		bRagdollFaceUp = PelvisRot.Roll > 0.0f;
 	} else
 	{
 		bRagdollFaceUp = PelvisRot.Roll < 0.0f;
 	}
+	// }
 
+	
+	float TargetYaw = bRagdollFaceUp ? PelvisRot.Yaw - 180.f : PelvisRot.Yaw;
+	TargetYaw = FRotator::ClampAxis(TargetYaw); // Keep between 0–360
+	const FRotator TargetRagdollRotation(0.0f, TargetYaw, 0.0f);
 
-	const FRotator TargetRagdollRotation(0.0f, bRagdollFaceUp ? PelvisRot.Yaw - 180.0f : PelvisRot.Yaw, 0.0f);
+	// FRotator CurrentRotation = GetActorRotation();
+	// FRotator SmoothedRotation = FMath::RInterpTo(CurrentRotation, FRotator(0.f, TargetYaw, 0.f), DeltaTime, 5.f);
+	// SetActorLocationAndRotation(NewLocation, SmoothedRotation);
+	// TargetRotation = SmoothedRotation;
 
 	// Trace downward from the target location to offset the target location,
 	// preventing the lower half of the capsule from going through the floor when the ragdoll is laying on the ground.
@@ -937,12 +1121,14 @@ void AALSBaseCharacter::SetActorLocationDuringRagdoll(float DeltaTime)
 	bRagdollOnGround = HitResult.IsValidBlockingHit();
 	FVector NewRagdollLoc = TargetRagdollLocation;
 
-	if (bRagdollOnGround)
+	if(bRagdollOnGround)
 	{
 		const float ImpactDistZ = FMath::Abs(HitResult.ImpactPoint.Z - HitResult.TraceStart.Z);
 		NewRagdollLoc.Z += GetCapsuleComponent()->GetScaledCapsuleHalfHeight() - ImpactDistZ + 2.0f;
 	}
-	if (!IsLocallyControlled())
+	// if(bServerRagdollPull)
+	// {
+	if(!IsLocallyControlled())
 	{
 		ServerRagdollPull = FMath::FInterpTo(ServerRagdollPull, 750.0f, DeltaTime, 0.6f);
 		float RagdollSpeed = FVector(LastRagdollVelocity.X, LastRagdollVelocity.Y, 0).Size();
@@ -954,13 +1140,22 @@ void AALSBaseCharacter::SetActorLocationDuringRagdoll(float DeltaTime)
 			(TargetRagdollLocation - GetMesh()->GetSocketLocation(RagdollSocketPullName)) * ServerRagdollPull,
 			RagdollSocketPullName, true);
 	}
-	SetActorLocationAndTargetRotation(bRagdollOnGround ? NewRagdollLoc : TargetRagdollLocation, TargetRagdollRotation);
+	// }
+	FRotator CurrentRotation = GetActorRotation();
+	FRotator SmoothedRotation = FMath::RInterpTo(CurrentRotation, FRotator(0.f, TargetYaw, 0.f), DeltaTime, RagdollInterpSpeed);
+	FVector CurrentLocation = GetActorLocation();
+	FVector TargetLocation = bRagdollOnGround ? NewRagdollLoc : TargetRagdollLocation;
+	FVector SmoothedLocation = FMath::VInterpTo(CurrentLocation, TargetLocation, DeltaTime, RagdollInterpSpeed);
+	SetActorLocationAndTargetRotation(SmoothedLocation, SmoothedRotation);
+	// SetActorLocationAndTargetRotation(bRagdollOnGround ? NewRagdollLoc : TargetRagdollLocation, TargetRagdollRotation);
+	// TargetRotation = SmoothedRotation;
 }
 
 void AALSBaseCharacter::OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::OnMovementModeChanged);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
 
 	Super::OnMovementModeChanged(PrevMovementMode, PreviousCustomMode);
 
@@ -982,6 +1177,8 @@ void AALSBaseCharacter::OnMovementStateChanged(const EALSMovementState PreviousS
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::OnMovementStateChanged);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
+
 	if (MovementState == EALSMovementState::InAir)
 	{
 		if (MovementAction == EALSMovementAction::None)
@@ -1010,6 +1207,8 @@ void AALSBaseCharacter::OnMovementActionChanged(const EALSMovementAction Previou
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::OnMovementActionChanged);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
+
 	// Make the character crouch if performing a roll.
 	if (MovementAction == EALSMovementAction::Rolling)
 	{
@@ -1038,6 +1237,8 @@ void AALSBaseCharacter::OnStanceChanged(const EALSStance PreviousStance)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::OnStanceChanged);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
+
 	if (CameraBehavior)
 	{
 		CameraBehavior->Stance = Stance;
@@ -1050,6 +1251,8 @@ void AALSBaseCharacter::OnRotationModeChanged(EALSRotationMode PreviousRotationM
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::OnRotationModeChanged);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
+
 	if (RotationMode == EALSRotationMode::VelocityDirection && ViewMode == EALSViewMode::FirstPerson)
 	{
 		// If the new rotation mode is Velocity Direction and the character is in First Person,
@@ -1077,6 +1280,8 @@ void AALSBaseCharacter::OnViewModeChanged(const EALSViewMode PreviousViewMode)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::OnViewModeChanged);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
+
 	if (ViewMode == EALSViewMode::ThirdPerson)
 	{
 		if (RotationMode == EALSRotationMode::VelocityDirection || RotationMode == EALSRotationMode::LookingDirection)
@@ -1169,7 +1374,10 @@ void AALSBaseCharacter::OnLandFrictionReset()
 void AALSBaseCharacter::SetEssentialValues(float DeltaTime)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::SetEssentialValues);
+	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("ALS SetEssentialValues"), STAT_ALS_SetEssentialValues, STATGROUP_ALS)
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
+
 
 	if (GetLocalRole() != ROLE_SimulatedProxy)
 	{
@@ -1190,6 +1398,8 @@ void AALSBaseCharacter::SetEssentialValues(float DeltaTime)
 		}
 	}
 
+
+
 	// Interp AimingRotation to current control rotation for smooth character rotation movement. Decrease InterpSpeed
 	// for slower but smoother movement.
 	AimingRotation = FMath::RInterpTo(AimingRotation, ReplicatedControlRotation, DeltaTime, 30);
@@ -1204,17 +1414,30 @@ void AALSBaseCharacter::SetEssentialValues(float DeltaTime)
 	const FVector NewAcceleration = (CurrentVel - PreviousVelocity) / DeltaTime;
 	Acceleration = NewAcceleration.IsNearlyZero() || IsLocallyControlled() ? NewAcceleration : Acceleration / 2;
 
+	// Flying 
+	bIsFlying = (GetALSMovementComponent() != nullptr && MovementState == EALSMovementState::InAir && GetALSMovementComponent()->IsFlying());
+
+
+	
 	// Determine if the character is moving by getting it's speed. The Speed equals the length of the horizontal (x y)
 	// velocity, so it does not take vertical movement into account. If the character is moving, update the last
 	// velocity rotation. This value is saved because it might be useful to know the last orientation of movement
 	// even after the character has stopped.
 	Speed = CurrentVel.Size2D();
+	if(GetIsFlying())
+	{
+		Speed = CurrentVel.Size();
+	}
+
+		
 	bIsMoving = Speed > 1.0f;
 	if (bIsMoving)
 	{
 		LastVelocityRotation = CurrentVel.ToOrientationRotator();
 	}
 
+
+		
 	// Determine if the character has movement input by getting its movement input amount.
 	// The Movement Input Amount is equal to the current acceleration divided by the max acceleration so that
 	// it has a range of 0-1, 1 being the maximum possible amount of input, and 0 being none.
@@ -1229,12 +1452,49 @@ void AALSBaseCharacter::SetEssentialValues(float DeltaTime)
 	// Set the Aim Yaw rate by comparing the current and previous Aim Yaw value, divided by Delta Seconds.
 	// This represents the speed the camera is rotating left to right.
 	AimYawRate = FMath::Abs((AimingRotation.Yaw - PreviousAimYaw) / DeltaTime);
+
+	if(AnimInstanceInterface != nullptr)
+	{
+		if(bOptimizeAnimValues)
+		{
+			// FALSAnimValues AnimValues;
+			AnimValues.ActorRotation = GetActorRotation();
+			AnimValues.CharacterInfo.MovementInputAmount = MovementInputAmount;
+			AnimValues.CharacterInfo.bHasMovementInput = bHasMovementInput;
+			AnimValues.CharacterInfo.bIsMoving = bIsMoving;
+			AnimValues.CharacterInfo.Acceleration = Acceleration;
+			AnimValues.CharacterInfo.AimYawRate = AimYawRate;
+			AnimValues.CharacterInfo.Speed = Speed;
+			AnimValues.CharacterInfo.bIsFlying = bIsFlying;
+			if(GetCharacterMovement() != nullptr)
+			{
+				AnimValues.CharacterInfo.Velocity = GetCharacterMovement()->Velocity;
+			}
+			AnimValues.CharacterInfo.MovementInput = GetMovementInput();
+			AnimValues.CharacterInfo.AimingRotation = AimingRotation;
+			// AnimValues.CharacterInfo.ViewMode = ViewMode;
+			AnimValues.CharacterInfo.PrevMovementState = PrevMovementState;
+			// AnimValues.OverlayOverrideState = OverlayOverrideState;
+			// AnimValues.MovementState = MovementState;
+			AnimValues.MovementAction = MovementAction;
+			// AnimValues.Stance = Stance;
+			// AnimValues.RotationMode = RotationMode;
+			// AnimValues.Gait = Gait;
+			// AnimValues.OverlayState = OverlayState;
+			// AnimValues.GroundedEntryState = GroundedEntryState;
+			AnimInstanceInterface->SetEssentialInfo(AnimValues);
+		}
+		AnimInstanceInterface->SetOptimize(bOptimizeAnimValues);
+	}
 }
 
 void AALSBaseCharacter::UpdateCharacterMovement()
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::UpdateCharacterMovement);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character_UpdateMovement);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
+
 
 	// Set the Allowed Gait
 	const EALSGait AllowedGait = GetAllowedGait();
@@ -1256,10 +1516,64 @@ void AALSBaseCharacter::UpdateGroundedRotation(float DeltaTime)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::UpdateGroundedRotation);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character_UpdateGroundedRotation);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
 
+	if(bOptimizeGroundRotation)
+	{
+		if (MovementAction != EALSMovementAction::None)
+		{
+			// Handle Rolling Rotation (skip other actions)
+			if (MovementAction == EALSMovementAction::Rolling && !bEnableNetworkOptimizations && bHasMovementInput)
+			{
+				SmoothCharacterRotation({0.0f, LastMovementInputRotation.Yaw, 0.0f}, 0.0f, 2.0f, DeltaTime);
+			}
+			return;
+		}
+
+		// Check if we can update the moving rotation
+		const bool bCanUpdateMovingRot = (((bIsMoving && bHasMovementInput) || (Speed > 150.0f || GetIsFlying())) && !HasAnyRootMotion());
+		if (bCanUpdateMovingRot)
+		{
+			const float GroundedRotationRate = CalculateGroundedRotationRate();
+			FRotator TargetRot{0.0f, 0.0f, 0.0f};
+
+			switch (RotationMode)
+			{
+			case EALSRotationMode::VelocityDirection:
+				TargetRot.Yaw = LastVelocityRotation.Yaw;
+				SmoothCharacterRotation(TargetRot, 800.0f, GroundedRotationRate, DeltaTime);
+				break;
+
+			case EALSRotationMode::LookingDirection:
+				TargetRot.Yaw = (Gait == EALSGait::Sprinting) 
+								? LastVelocityRotation.Yaw 
+								: AimingRotation.Yaw + GetAnimCurveValue(NAME_YawOffset);
+				SmoothCharacterRotation(TargetRot, 500.0f, GroundedRotationRate, DeltaTime);
+				break;
+
+			case EALSRotationMode::Aiming:
+				TargetRot.Yaw = AimingRotation.Yaw;
+				SmoothCharacterRotation(TargetRot, 1000.0f, 20.0f, DeltaTime);
+				break;
+			}
+		}
+		else
+		{
+			// if(GetIsFlying())
+			// {
+			// 	// Check for Moving when speed is 0
+			// 	return;
+			// }
+			// Handle Non-Moving Rotation
+			HandleNonMovingRotation(DeltaTime);
+		}
+		return;
+	}
+	//@ TEST Optimizations	//
 	if (MovementAction == EALSMovementAction::None)
 	{
-		const bool bCanUpdateMovingRot = ((bIsMoving && bHasMovementInput) || Speed > 150.0f) && !HasAnyRootMotion();
+		const bool bCanUpdateMovingRot = ((bIsMoving && bHasMovementInput) || (Speed > 150.0f || GetIsFlying())) && !HasAnyRootMotion();
 		if (bCanUpdateMovingRot)
 		{
 			const float GroundedRotationRate = CalculateGroundedRotationRate();
@@ -1294,19 +1608,19 @@ void AALSBaseCharacter::UpdateGroundedRotation(float DeltaTime)
 		else
 		{
 			// Not Moving
-
+	
 			if ((ViewMode == EALSViewMode::ThirdPerson && RotationMode == EALSRotationMode::Aiming) ||
 				ViewMode == EALSViewMode::FirstPerson)
 			{
 				LimitRotation(-100.0f, 100.0f, 20.0f, DeltaTime);
 			}
-
+	
 			// Apply the RotationAmount curve from Turn In Place Animations.
 			// The Rotation Amount curve defines how much rotation should be applied each frame,
 			// and is calculated for animations that are animated at 30fps.
-
+	
 			const float RotAmountCurve = GetAnimCurveValue(NAME_RotationAmount);
-
+	
 			if (FMath::Abs(RotAmountCurve) > 0.001f)
 			{
 				if (GetLocalRole() == ROLE_AutonomousProxy)
@@ -1331,14 +1645,46 @@ void AALSBaseCharacter::UpdateGroundedRotation(float DeltaTime)
 			SmoothCharacterRotation({0.0f, LastMovementInputRotation.Yaw, 0.0f}, 0.0f, 2.0f, DeltaTime);
 		}
 	}
-
+	
 	// Other actions are ignored...
+}
+
+void AALSBaseCharacter::HandleNonMovingRotation(float DeltaTime)
+{
+	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("ALS HandleNonMovingRotation"), STAT_ALS_HandleNonMovingRotation, STATGROUP_ALS)
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
+
+	// Handle Aiming or First-Person View rotation limits
+	if ((ViewMode == EALSViewMode::ThirdPerson && RotationMode == EALSRotationMode::Aiming) ||
+		ViewMode == EALSViewMode::FirstPerson)
+	{
+		LimitRotation(-100.0f, 100.0f, 20.0f, DeltaTime);
+	}
+
+	const float RotAmountCurve = GetAnimCurveValue(NAME_RotationAmount);
+	if (FMath::Abs(RotAmountCurve) > 0.001f)
+	{
+		const float RotationDelta = RotAmountCurve * (DeltaTime / (1.0f / 30.0f));
+
+		if (GetLocalRole() == ROLE_AutonomousProxy)
+		{
+			TargetRotation.Yaw = UKismetMathLibrary::NormalizeAxis(TargetRotation.Yaw + RotationDelta);
+			SetActorRotation(TargetRotation);
+		}
+		else
+		{
+			AddActorWorldRotation({0, RotationDelta, 0});
+		}
+		TargetRotation = GetActorRotation();  // Cache the updated rotation
+	}
 }
 
 void AALSBaseCharacter::UpdateInAirRotation(float DeltaTime)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::UpdateInAirRotation);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character_AirRotation);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
 
 	if (RotationMode == EALSRotationMode::VelocityDirection || RotationMode == EALSRotationMode::LookingDirection)
 	{
@@ -1410,6 +1756,9 @@ EALSGait AALSBaseCharacter::GetActualGait(EALSGait AllowedGait) const
 void AALSBaseCharacter::SmoothCharacterRotation(FRotator Target, float TargetInterpSpeed, float ActorInterpSpeed,
                                                 float DeltaTime)
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character_SmoothCharacterRotation);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
+
 	// Interpolate the Target Rotation for extra smooth rotation behavior
 	TargetRotation =
 		FMath::RInterpConstantTo(TargetRotation, Target, DeltaTime, TargetInterpSpeed);
@@ -1419,6 +1768,8 @@ void AALSBaseCharacter::SmoothCharacterRotation(FRotator Target, float TargetInt
 
 float AALSBaseCharacter::CalculateGroundedRotationRate() const
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
+
 	// Calculate the rotation rate by using the current Rotation Rate Curve in the Movement Settings.
 	// Using the curve in conjunction with the mapped speed gives you a high level of control over the rotation
 	// rates for each speed. Increase the speed if the camera is rotating quickly for more responsive rotation.
@@ -1435,6 +1786,8 @@ float AALSBaseCharacter::CalculateGroundedRotationRate() const
 
 void AALSBaseCharacter::LimitRotation(float AimYawMin, float AimYawMax, float InterpSpeed, float DeltaTime)
 {
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
+
 	// Prevent the character from rotating past a certain angle.
 	FRotator Delta = AimingRotation - GetActorRotation();
 	Delta.Normalize();
@@ -1503,7 +1856,7 @@ void AALSBaseCharacter::JumpAction(bool bValue)
 			}
 			else if (MovementState == EALSMovementState::Ragdoll)
 			{
-				ReplicatedRagdollEnd();
+				RagdollStop();
 			}
 		}
 	}
@@ -1633,14 +1986,13 @@ void AALSBaseCharacter::WalkAction_Implementation()
 void AALSBaseCharacter::RagdollAction_Implementation()
 {
 	// Ragdoll Action: Press "Ragdoll Action" to toggle the ragdoll state on or off.
-
 	if (GetMovementState() == EALSMovementState::Ragdoll)
 	{
-		ReplicatedRagdollEnd();
+		RagdollStop();
 	}
 	else
 	{
-		ReplicatedRagdollStart();
+		Ragdoll();
 	}
 }
 
@@ -1703,12 +2055,13 @@ void AALSBaseCharacter::OnRep_VisibleMesh(const USkeletalMesh* PreviousSkeletalM
 	OnVisibleMeshChanged(PreviousSkeletalMesh);
 }
 
+
 void AALSBaseCharacter::SetupCapsuleComponent() const
 {
 	if(GetCapsuleComponent() == nullptr){UE_LOG(LogTemp, Error, TEXT("AALSBaseCharacter::SetupCapsuleComponent FAILED"));return;}
 	GetCapsuleComponent()->SetCapsuleHalfHeight(90.0f);
 	GetCapsuleComponent()->SetCapsuleRadius(35.0f);
-	GetCapsuleComponent()->SetAreaClassOverride(UNavArea_Obstacle::StaticClass());
+	GetCapsuleComponent()->SetAreaClassOverride(UNavArea_Obstacle::StaticClass());\
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Visibility, ECR_Ignore);
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_GameTraceChannel3, ECR_Ignore);	// Climable

@@ -5,7 +5,9 @@
 
 #include "CoreMinimal.h"
 #include "Animation/AnimInstance.h"
+#include "Character/Animation/CharacterAnimInstance.h"
 #include "Data/BaseData.h"
+#include "Interfaces/ALSAnimInterface.h"
 #include "Interfaces/CustomAnimInstance.h"
 #include "Library/ALSAnimationStructLibrary.h"
 #include "Library/ALSStructEnumLibrary.h"
@@ -23,7 +25,7 @@ class UCurveVector;
  * Main anim instance class for character
  */
 UCLASS(Blueprintable, BlueprintType)
-class ALSV4_CPP_API UALSCharacterAnimInstance : public UAnimInstance, public ICustomAnimInstance
+class ALSV4_CPP_API UALSCharacterAnimInstance : public UCharacterAnimInstance, public IALSAnimInterface
 {
 	GENERATED_BODY()
 
@@ -49,31 +51,93 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "ALS|Event")
 	void OnPivot();
-
-
-	//~		Custom Anim Instance	~//
 	
-	/** For Setting the characters blind fire	*/
-	virtual void SetFiringWeapon(const bool bValue) override;
-
-	/** Setting The Location and Rotation of the Recoil	*/
-	virtual void SetRecoilTransform(const FTransform& Transform) override;
-	/** Setting the Pivot Point for the Gun to Rotate Around when Recoiling*/
-	virtual void SetPivotPoint(const FTransform& Transform) override;
-	/** For When the feet get stuck and need disabling	*/
-	virtual void DisableFootIK(const float DelayTime) override;
-
-	virtual void SetInjured(const EBodyPartName BodyPartName, const float InjuredAmount) override;
-	//~		Custom Anim Instance	~//
+	virtual void SetEssentialInfo(const FALSAnimValues& Value) override;
+	virtual void SetOptimize(const bool bValue) override;
+	virtual void SetMovementState(const FALSMovementState& Value) override;
+	virtual void SetOverlayOverrideState(const int32 Value) override;
+	virtual void SetGait(const FALSGait& Value) override;
+	virtual void SetStance(const FALSStance& Value) override;
+	virtual void SetViewMode(const EALSViewMode Value) override;
+	virtual void SetOverlayState(const FALSOverlayState& Value) override;
+	virtual void SetNewGroundedEntryState(const FALSGroundedEntryState& Value) override;
+	virtual void SetRotationMode(const FALSRotationMode Value) override;
 	
-	UFUNCTION(BlueprintImplementableEvent, Category="Custom ALS")
-	void OnDisableFootIK(const float DelayTime);
-	UFUNCTION(BlueprintImplementableEvent, Category="Custom ALS")
-	void OnInjured(const EBodyPartName BodyPartName, const float InjuredAmount);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="ALS|Debug")
+	bool bOptimize = false;
 
 	UFUNCTION(BlueprintCallable, Category="Custom ALS")
-	bool GetFiringWeapon() const{return bFiringWeapon;};
+	FRotator GetRecoilRotation() const {return RecoilTransform.Rotator();};
+	UFUNCTION(BlueprintCallable, Category="Custom ALS")
+	FVector GetPivotPointLocation() const {return PivotPoint.GetLocation() + GunOffset;};
+	UFUNCTION(BlueprintCallable, Category="Custom ALS")
+	bool GetShouldOverlayStateUsePRASIK() const;
 
+protected:
+	/** Optimizations  */
+	
+	// Returns if the HipOrientation_Bias ABS < 0.5f
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetHipOrientationBiasOverHalf() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetPreStopToFootUpRule() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetPreStopToFootDownRule() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetFeetCrossing() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetRightFootRule() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetLeftFootRule() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetHipsRightRule() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetHipsLeftRule() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetLookTowardFRule() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetLookTowardRBRule() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetLookTowardLBRule() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetRunningToWalkingRule() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetEntryToCrouchingLFRule() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetEntryToStandingRule() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetInterruptTransitionRule() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetEntryToJumpRightFoot() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetLandToGroundRule() const;
+
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetMoveLFToMoveLBRule() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetMoveRBtoMoveRFRule() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetLookingLeftAndBackToLookingForwardRule() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetLookingRightAndBackToLookingForwardRule() const;
+	// UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	// bool GetLookingForwardsToLookingRightBackRule() const;
+	// UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	// bool GetLookingForwardsToLookingLeftBackRule() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetLookingToCameraNoOffsetRule() const;
+
+	// UFUNCTION(BlueprintCallable, Category="Custom ALS")
+	// bool GetJumpLeftFootToJumpLoopRule() const;
+
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="ALS|Extras")
+	float SmoothedAimingAngleFMax = 125.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="ALS|Extras")
+	float SmoothedAimingAngleRBMax = 180.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="ALS|Extras")
+	float SmoothedAimingAngleRBMin = 130.0f;
 
 protected:
 
@@ -140,16 +204,16 @@ private:
 
 	void SetFootLocking(float DeltaSeconds, FName EnableFootIKCurve, FName FootLockCurve, FName IKFootBone,
                           float& CurFootLockAlpha, bool& UseFootLockCurve,
-                          FVector& CurFootLockLoc, FRotator& CurFootLockRot);
+                          FVector& CurFootLockLoc, FRotator& CurFootLockRot) const;
 
-	void SetFootLockOffsets(float DeltaSeconds, FVector& LocalLoc, FRotator& LocalRot);
+	void SetFootLockOffsets(float DeltaSeconds, FVector& LocalLoc, FRotator& LocalRot) const;
 
 	void SetPelvisIKOffset(float DeltaSeconds, FVector FootOffsetLTarget, FVector FootOffsetRTarget);
 
 	void ResetIKOffsets(float DeltaSeconds);
 
 	void SetFootOffsets(float DeltaSeconds, FName EnableFootIKCurve, FName IKFootBone, FName RootBone,
-                          FVector& CurLocationTarget, FVector& CurLocationOffset, FRotator& CurRotationOffset);
+                          FVector& CurLocationTarget, FVector& CurLocationOffset, FRotator& CurRotationOffset) const;
 
 	/** Grounded */
 
@@ -316,21 +380,6 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Configuration|Anim Graph - Foot IK")
 	FName IkFootR_BoneName = FName(TEXT("ik_foot_r"));
 
-
-	//~		Custom Anim Vars	~//
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Read Only Data|Anim Graph - Recoil")
-	FVector GunOffset = FVector::ZeroVector;
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Read Only Data|Anim Graph - Recoil")
-	FTransform RecoilTransform;
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Read Only Data|Anim Graph - Recoil")
-	FTransform PivotPoint;
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Read Only Data|Anim Graph - Recoil")
-	bool bFiringWeapon = false;
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Read Only Data|Anim Graph - Injured")
-	EBodyPartName InjuredBodyPart = EBodyPartName::Pelvis;
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Read Only Data|Anim Graph - Injured")
-	float InjuredAlpha = 0.0f;
-	//~		Custom Anim Vars	~//
 
 
 private:

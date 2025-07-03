@@ -51,7 +51,7 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable, Category = "ALS|HeldObject")
 	void UpdateHeldObjectAnimations();
 
-public:
+// public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS|Component")
 	TObjectPtr<USceneComponent> HeldObjectRoot = nullptr;
 	

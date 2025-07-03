@@ -9,6 +9,8 @@
 #include "UObject/Interface.h"
 #include "ALSCharacterInterface.generated.h"
 
+enum class EALSOverlayState : uint8;
+
 UINTERFACE(MinimalAPI, meta = (CannotImplementInterfaceInBlueprint))
 class UALSCharacterInterface : public UInterface
 {
@@ -28,6 +30,11 @@ public:
 	// virtual USkeletalMeshComponent* GetCharacterMesh() = 0;
 	// virtual UPrimitiveComponent* GetPrimitiveComponent() = 0;
 	// virtual IALSCharacterMovementInterface* GetALSCharacterMovementInterface() const = 0;
+	virtual FVector GetLeftHandGoal() const = 0;
+	virtual FVector GetRightHandGoal() const = 0;
+	virtual EALSOverlayState GetCurrentOverlayState() const = 0;
+	virtual bool GetIsMantling() const = 0;
+
 	virtual IALSGravityMovementInterface* GetALSGravityMovementInterface() const = 0;
 	
 	// virtual void GravityDirectionChanged(EGravityDirectionMode OldGravityDirectionMode, EGravityDirectionMode CurrentGravityDirectionMode) = 0;

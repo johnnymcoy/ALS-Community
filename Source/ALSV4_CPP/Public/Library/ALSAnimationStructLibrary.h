@@ -7,9 +7,11 @@
 #include "CoreMinimal.h"
 #include "Runtime/Engine/Classes/Animation/AnimSequenceBase.h"
 #include "ALSCharacterEnumLibrary.h"
+#include "ALSStructEnumLibrary.h"
 
 
 #include "ALSAnimationStructLibrary.generated.h"
+
 
 
 USTRUCT(BlueprintType)
@@ -111,6 +113,9 @@ struct FALSAnimCharacterInformation
 	bool bIsMoving = false;
 
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "ALS|Character Information")
+	bool bIsFlying = false;
+	
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "ALS|Character Information")
 	bool bHasMovementInput = false;
 
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "ALS|Character Information")
@@ -131,6 +136,27 @@ struct FALSAnimCharacterInformation
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "ALS|Character Information")
 	EALSViewMode ViewMode = EALSViewMode::ThirdPerson;
 };
+
+
+//@TEST New Var to help with interface optimization 
+USTRUCT(BlueprintType)
+struct FALSAnimValues
+{
+	GENERATED_BODY()
+
+	FALSAnimCharacterInformation CharacterInfo;
+	FRotator ActorRotation;
+	int32 OverlayOverrideState;
+	FALSMovementState MovementState;
+	FALSMovementAction MovementAction;
+	FALSStance Stance;
+	FALSRotationMode RotationMode;
+	FALSGait Gait;
+	FALSOverlayState OverlayState;
+	FALSGroundedEntryState GroundedEntryState;
+};
+
+
 
 USTRUCT(BlueprintType)
 struct FALSAnimGraphGrounded

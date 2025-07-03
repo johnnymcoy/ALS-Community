@@ -13,8 +13,14 @@
 #include "Interfaces/ALSCharacterInterface.h"
 #include "Character/ALSCharacterMovementComponent.h"
 #include "Character/CharacterBase.h"
+#include "Characters/InteractableCharacter.h"
+#include "Characters/InteractableCharacter.h"
+
+#include "Library/ALSAnimationStructLibrary.h"
 #include "ALSBaseCharacter.generated.h"
 
+class IALSAnimInterface;
+class ICustomAnimInstance;
 // forward declarations
 class UALSDebugComponent;
 class UAnimMontage;
@@ -29,7 +35,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FRagdollStateChangedSignature, bool,
  * Base character class
  */
 UCLASS(BlueprintType)
-class ALSV4_CPP_API AALSBaseCharacter : public ACharacterBase, public IALSCharacterInterface
+class ALSV4_CPP_API AALSBaseCharacter : public AInteractableCharacter, public IALSCharacterInterface
 {
 	GENERATED_BODY()
 
@@ -41,7 +47,11 @@ public:
 	{
 		return MyCharacterMovementComponent;
 	}
-	
+	virtual FVector GetLeftHandGoal() const override;
+	virtual FVector GetRightHandGoal() const override;
+	virtual EALSOverlayState GetCurrentOverlayState() const override {return OverlayState;};
+	virtual bool GetIsMantling() const override;
+
 	// FORCEINLINE virtual IALSCharacterMovementInterface* GetALSCharacterMovementInterface() const override
 	// {
 	// 	return Cast<IALSCharacterMovementInterface>(MyCharacterMovementComponent);
@@ -55,8 +65,8 @@ public:
 	float GravityMultiplier = 9.8f;
 	
 	virtual void Ragdoll() override;
-
-
+	virtual void RagdollStop() override;
+	virtual void RagdollFrozen(const bool bFrozen) override;
 
 	virtual void Tick(float DeltaTime) override;
 
@@ -334,6 +344,10 @@ public:
 	UFUNCTION(BlueprintGetter, Category = "ALS|Essential Information")
 	bool IsMoving() const { return bIsMoving; }
 
+	UFUNCTION(BlueprintGetter, Category = "ALS|Essential Information")
+	bool GetIsFlying() const { return bIsFlying; }
+
+
 	UFUNCTION(BlueprintCallable, Category = "ALS|Essential Information")
 	FVector GetMovementInput() const;
 
@@ -439,6 +453,7 @@ protected:
 
 	void UpdateInAirRotation(float DeltaTime);
 
+
 	/** Utils */
 
 	void SmoothCharacterRotation(FRotator Target, float TargetInterpSpeed, float ActorInterpSpeed, float DeltaTime);
@@ -468,6 +483,19 @@ protected:
 	/* Custom movement component*/
 	UPROPERTY()
 	TObjectPtr<UALSCharacterMovementComponent> MyCharacterMovementComponent;
+
+	/** Optimizations		*/
+	UPROPERTY(EditAnywhere,  BlueprintReadWrite, Category = "ALS|Optimization")
+	bool bOptimizeGroundRotation = true;
+	UPROPERTY(EditAnywhere,  BlueprintReadWrite, Category = "ALS|Optimization")
+	bool bOptimizeAnimValues = true;
+	
+	void HandleNonMovingRotation(float DeltaTime);
+
+	FALSAnimValues AnimValues;
+	IALSAnimInterface* AnimInstanceInterface;
+	
+	/** Optimizations		*/
 
 	/** Input */
 
@@ -509,9 +537,23 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "ALS|Camera System")
 	bool bAimDownSights = false;
 
-	
-	/** Movement System */
+	//--- Ragdoll Optimizations --//
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "ALS|Debug|Ragdoll")
+	bool bDisableRagdollUpdate = false;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "ALS|Debug|Ragdoll")
+	bool bDisableSetRagdollLocation = false;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "ALS|Debug|Ragdoll")
+	bool bSetMovementStateRagdoll = true;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "ALS|Debug|Ragdoll")
+	float RagdollInterpSpeed = 5.0f;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "ALS|Debug|Ragdoll")
+	bool bRagdollGround = true;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "ALS|Debug|Ragdoll")
+	bool bServerRagdollPull = true;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "ALS|Debug|Ragdoll")
+	bool bRagdollFacing = true;
+	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "ALS|Movement System")
 	FDataTableRowHandle MovementModel;
 
@@ -522,6 +564,9 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly, Category = "ALS|Essential Information")
 	bool bIsMoving = false;
+	
+	UPROPERTY(BlueprintReadOnly, Category = "ALS|Essential Information")
+	bool bIsFlying = false;
 
 	UPROPERTY(BlueprintReadOnly, Category = "ALS|Essential Information")
 	bool bHasMovementInput = false;

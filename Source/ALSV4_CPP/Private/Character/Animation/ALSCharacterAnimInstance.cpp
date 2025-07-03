@@ -11,8 +11,10 @@
 #include "Curves/CurveVector.h"
 #include "Engine/World.h"
 #include "TimerManager.h"
+#include "Animation/AnimNode_StateMachine.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Kismet/KismetMathLibrary.h"
 
 
 static const FName NAME_BasePose_CLF(TEXT("BasePose_CLF"));
@@ -44,6 +46,11 @@ static const FName NAME_W_Gait(TEXT("W_Gait"));
 static const FName NAME__ALSCharacterAnimInstance__root(TEXT("root"));
 
 DECLARE_CYCLE_STAT(TEXT("ALS Animations (All Functions)"), STATGROUP_ALS_Animations, STATGROUP_ALS);
+DECLARE_CYCLE_STAT(TEXT("ALS Animations (SetValues)"), STATGROUP_ALS_Animations_SetValues, STATGROUP_ALS);
+// DECLARE_CYCLE_STAT(TEXT("ALS (All Functions)"), STATGROUP_ALS_All, STATGROUP_ALS);
+
+// DECLARE_SCOPE_CYCLE_COUNTER(TEXT("ALS NativeUpdateAnimation"), STAT_ALS_NativeUpdateAnimation, STATGROUP_ALS)
+// DECLARE_SCOPE_CYCLE_COUNTER(TEXT("ALS ThreadSafeUpdateAnimation"), STAT_ALS_NativeThreadSafeUpdateAnimation, STATGROUP_ALS)
 
 
 void UALSCharacterAnimInstance::NativeInitializeAnimation()
@@ -63,6 +70,8 @@ void UALSCharacterAnimInstance::NativeBeginPlay()
 {
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::NativeBeginPlay);
+	// SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
+
 	// it seems to be that the player pawn components are not really initialized
 	// when the call to NativeInitializeAnimation() happens.
 	// This is the reason why it is tried here to get the ALS debug component.
@@ -76,110 +85,280 @@ void UALSCharacterAnimInstance::NativeBeginPlay()
 void UALSCharacterAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 {
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("ALS NativeUpdateAnimation"), STAT_ALS_NativeUpdateAnimation, STATGROUP_ALS)
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::NativeUpdateAnimation);
-	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("ALS NativeUpdateAnimation"), STAT_ALS_NativeThreadSafeUpdateAnimation, STATGROUP_ALS)
+	// SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
 
 	Super::NativeUpdateAnimation(DeltaSeconds);
 
-	if (!Character || DeltaSeconds == 0.0f)
+	if(!Character || DeltaSeconds == 0.0f)
 	{
 		return;
 	}
-
-	// Update rest of character information. Others are reflected into anim bp when they're set inside character class
-	CharacterInformation.MovementInputAmount = Character->GetMovementInputAmount();
-	CharacterInformation.bHasMovementInput = Character->HasMovementInput();
-	CharacterInformation.bIsMoving = Character->IsMoving();
-	CharacterInformation.Acceleration = Character->GetAcceleration();
-	CharacterInformation.AimYawRate = Character->GetAimYawRate();
-	CharacterInformation.Speed = Character->GetSpeed();
-	if(Character->GetCharacterMovement() != nullptr)
+	if(bOptimize)
 	{
-		CharacterInformation.Velocity = Character->GetCharacterMovement()->Velocity;
-	}
-	CharacterInformation.MovementInput = Character->GetMovementInput();
-	CharacterInformation.AimingRotation = Character->GetAimingRotation();
-	CharacterInformation.CharacterActorRotation = Character->GetActorRotation();
-	CharacterInformation.ViewMode = Character->GetViewMode();
-	CharacterInformation.PrevMovementState = Character->GetPrevMovementState();
-	LayerBlendingValues.OverlayOverrideState = Character->GetOverlayOverrideState();
-	MovementState = Character->GetMovementState();
-	MovementAction = Character->GetMovementAction();
-	Stance = Character->GetStance();
-	RotationMode = Character->GetRotationMode();
-	Gait = Character->GetGait();
-	OverlayState = Character->GetOverlayState();
-	GroundedEntryState = Character->GetGroundedEntryState();
-
-	
-
-	UpdateAimingValues(DeltaSeconds);
-	UpdateLayerValues();
-	UpdateFootIK(DeltaSeconds);
-
-	if (MovementState.Grounded())
-	{
-		// Check If Moving Or Not & Enable Movement Animations if IsMoving and HasMovementInput, or if the Speed is greater than 150.
-		const bool bPrevShouldMove = Grounded.bShouldMove;
-		Grounded.bShouldMove = ShouldMoveCheck();
-
-		if (bPrevShouldMove == false && Grounded.bShouldMove)
+		UpdateFootIK(DeltaSeconds);
+		if (MovementState.Grounded())
 		{
-			// Do When Starting To Move
-			TurnInPlaceValues.ElapsedDelayTime = 0.0f;
-			Grounded.bRotateL = false;
-			Grounded.bRotateR = false;
-		}
-
-		if (Grounded.bShouldMove)
-		{
-			// Do While Moving
-			UpdateMovementValues(DeltaSeconds);
-			UpdateRotationValues();
-		}
-		else
-		{
-			// Do While Not Moving
-			if (CanRotateInPlace())
+			const bool bPrevShouldMove = Grounded.bShouldMove;
+			Grounded.bShouldMove = ShouldMoveCheck();
+			if (bPrevShouldMove == false && Grounded.bShouldMove)
 			{
-				RotateInPlaceCheck();
-			}
-			else
-			{
+				// Do When Starting To Move
+				TurnInPlaceValues.ElapsedDelayTime = 0.0f;
 				Grounded.bRotateL = false;
 				Grounded.bRotateR = false;
 			}
-			if (CanTurnInPlace())
+
+			if (Grounded.bShouldMove)
 			{
-				TurnInPlaceCheck(DeltaSeconds);
 			}
 			else
 			{
-				TurnInPlaceValues.ElapsedDelayTime = 0.0f;
+				if (CanDynamicTransition())
+				{
+					DynamicTransitionCheck();
+				}
 			}
-			if (CanDynamicTransition())
-			{
-				DynamicTransitionCheck();
-			}
+
 		}
 	}
-	else if (MovementState.InAir())
+	else
 	{
-		// Do While InAir
-		UpdateInAirValues(DeltaSeconds);
+		// Update rest of character information. Others are reflected into anim bp when they're set inside character class
+		CharacterInformation.MovementInputAmount = Character->GetMovementInputAmount();
+		CharacterInformation.bHasMovementInput = Character->HasMovementInput();
+		CharacterInformation.bIsMoving = Character->IsMoving();
+		CharacterInformation.Acceleration = Character->GetAcceleration();
+		CharacterInformation.AimYawRate = Character->GetAimYawRate();
+		CharacterInformation.Speed = Character->GetSpeed();
+		if(Character->GetCharacterMovement() != nullptr)
+		{
+			CharacterInformation.Velocity = Character->GetCharacterMovement()->Velocity;
+		}
+		CharacterInformation.MovementInput = Character->GetMovementInput();
+		CharacterInformation.AimingRotation = Character->GetAimingRotation();
+		CharacterInformation.CharacterActorRotation = Character->GetActorRotation();
+		CharacterInformation.ViewMode = Character->GetViewMode();
+		CharacterInformation.PrevMovementState = Character->GetPrevMovementState();
+		LayerBlendingValues.OverlayOverrideState = Character->GetOverlayOverrideState();
+        MovementState = Character->GetMovementState();
+        MovementAction = Character->GetMovementAction();
+        Stance = Character->GetStance();
+        RotationMode = Character->GetRotationMode();
+        Gait = Character->GetGait();
+        OverlayState = Character->GetOverlayState();
+        GroundedEntryState = Character->GetGroundedEntryState();
+
+
+		UpdateAimingValues(DeltaSeconds);
+		UpdateLayerValues();
+		UpdateFootIK(DeltaSeconds);
+
+		if (MovementState.Grounded())
+		{
+			// Check If Moving Or Not & Enable Movement Animations if IsMoving and HasMovementInput, or if the Speed is greater than 150.
+			const bool bPrevShouldMove = Grounded.bShouldMove;
+			Grounded.bShouldMove = ShouldMoveCheck();
+
+			if (bPrevShouldMove == false && Grounded.bShouldMove)
+			{
+				// Do When Starting To Move
+				TurnInPlaceValues.ElapsedDelayTime = 0.0f;
+				Grounded.bRotateL = false;
+				Grounded.bRotateR = false;
+			}
+			if (Grounded.bShouldMove)
+			{
+				// Do While Moving
+				UpdateMovementValues(DeltaSeconds);
+				UpdateRotationValues();
+			}
+			else
+			{
+				// Do While Not Moving
+				if (CanRotateInPlace())
+				{
+					RotateInPlaceCheck();
+				}
+				else
+				{
+					Grounded.bRotateL = false;
+					Grounded.bRotateR = false;
+				}
+				if (CanTurnInPlace())
+				{
+					TurnInPlaceCheck(DeltaSeconds);
+				}
+				else
+				{
+					TurnInPlaceValues.ElapsedDelayTime = 0.0f;
+				}
+				if (CanDynamicTransition())
+				{
+					DynamicTransitionCheck();
+				}
+			}
+		}
+		else if (MovementState.InAir())
+		{
+			// Do While InAir
+			UpdateInAirValues(DeltaSeconds);
+		}
+		else if (MovementState.Ragdoll())
+		{
+			// Do While Ragdolling
+			UpdateRagdollValues();
+		}
 	}
-	else if (MovementState.Ragdoll())
-	{
-		// Do While Ragdolling
-		UpdateRagdollValues();
-	}
+
+	
+	// UpdateAimingValues(DeltaSeconds);
+	// UpdateLayerValues();
+	// UpdateFootIK(DeltaSeconds);
+
+}
+
+//@ Step 1 is to move all values to be set by interface
+//@ Step 2 is to move any functions to the Thread safe update
+//@ Step 3 Move all "setessential into" to only when it needs to be updated
+//@ Add Seperate Function for Other Non Essential values
+
+void UALSCharacterAnimInstance::SetEssentialInfo(const FALSAnimValues& Value)
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations_SetValues);
+
+	CharacterInformation.MovementInputAmount = Value.CharacterInfo.MovementInputAmount;
+	CharacterInformation.bHasMovementInput = Value.CharacterInfo.bHasMovementInput;
+	CharacterInformation.bIsMoving = Value.CharacterInfo.bIsMoving;
+	CharacterInformation.Acceleration = Value.CharacterInfo.Acceleration;
+	CharacterInformation.AimYawRate = Value.CharacterInfo.AimYawRate;
+	CharacterInformation.Speed = Value.CharacterInfo.Speed;
+	CharacterInformation.MovementInput = Value.CharacterInfo.MovementInput;
+	CharacterInformation.AimingRotation = Value.CharacterInfo.AimingRotation;
+	CharacterInformation.CharacterActorRotation = Value.ActorRotation;
+	CharacterInformation.PrevMovementState = Value.CharacterInfo.PrevMovementState;
+	CharacterInformation.Velocity = Value.CharacterInfo.Velocity;
+	// MovementState = Value.MovementState;
+	MovementAction = Value.MovementAction;
+}
+
+void UALSCharacterAnimInstance::SetOptimize(const bool bValue)
+{
+	bOptimize = bValue;
+}
+
+void UALSCharacterAnimInstance::SetMovementState(const FALSMovementState& Value)
+{
+	MovementState = Value;
+}
+
+void UALSCharacterAnimInstance::SetOverlayOverrideState(const int32 Value)
+{
+	LayerBlendingValues.OverlayOverrideState = Value;
+}
+
+void UALSCharacterAnimInstance::SetGait(const FALSGait& Value)
+{
+	Gait = Value;
+}
+
+void UALSCharacterAnimInstance::SetStance(const FALSStance& Value)
+{
+	Stance = Value;
+}
+
+void UALSCharacterAnimInstance::SetViewMode(const EALSViewMode Value)
+{
+	CharacterInformation.ViewMode = Value;
+}
+
+void UALSCharacterAnimInstance::SetOverlayState(const FALSOverlayState& Value)
+{
+	OverlayState = Value;
+}
+
+void UALSCharacterAnimInstance::SetNewGroundedEntryState(const FALSGroundedEntryState& Value)
+{
+	GroundedEntryState = Value;
+}
+
+void UALSCharacterAnimInstance::SetRotationMode(const FALSRotationMode Value)
+{
+	RotationMode = Value;
 }
 
 void UALSCharacterAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSeconds)
 {
 	Super::NativeThreadSafeUpdateAnimation(DeltaSeconds);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("ALS ThreadSafeUpdateAnimation"), STAT_ALS_NativeThreadSafeUpdateAnimation, STATGROUP_ALS)
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::NativeThreadSafeUpdateAnimation);
+	if(bOptimize)
+	{
+		UpdateAimingValues(DeltaSeconds);
+		UpdateLayerValues();
+		
+		if (MovementState.Grounded())
+		{
+			// Check If Moving Or Not & Enable Movement Animations if IsMoving and HasMovementInput, or if the Speed is greater than 150.
+			const bool bPrevShouldMove = Grounded.bShouldMove;
+			Grounded.bShouldMove = ShouldMoveCheck();
+
+			if (bPrevShouldMove == false && Grounded.bShouldMove)
+			{
+				// Do When Starting To Move
+				TurnInPlaceValues.ElapsedDelayTime = 0.0f;
+				Grounded.bRotateL = false;
+				Grounded.bRotateR = false;
+			}
+
+			if (Grounded.bShouldMove)
+			{
+				// Do While Moving
+				UpdateMovementValues(DeltaSeconds);
+				UpdateRotationValues();
+			}
+			else
+			{
+				// Do While Not Moving
+				if (CanRotateInPlace())
+				{
+					RotateInPlaceCheck();
+				}
+				else
+				{
+					Grounded.bRotateL = false;
+					Grounded.bRotateR = false;
+				}
+				if (CanTurnInPlace())
+				{
+					TurnInPlaceCheck(DeltaSeconds);
+				}
+				else
+				{
+					TurnInPlaceValues.ElapsedDelayTime = 0.0f;
+				}
+				// if (CanDynamicTransition())
+				// {
+				// 	DynamicTransitionCheck();
+				// }
+			}
+		}
+		else if (MovementState.InAir())
+		{
+			// Do While InAir
+			UpdateInAirValues(DeltaSeconds);
+		}
+		else if (MovementState.Ragdoll())
+		{
+			// Do While Ragdolling
+			UpdateRagdollValues();
+		}
+
+
+	}
 	// UpdateFootIK(DeltaSeconds);
 
 }
@@ -221,6 +400,306 @@ void UALSCharacterAnimInstance::PlayDynamicTransition(float ReTriggerDelay, FALS
 		                                  ReTriggerDelay, false);
 	}
 }
+
+
+bool UALSCharacterAnimInstance::GetShouldOverlayStateUsePRASIK() const
+{
+	switch (OverlayState) {
+	case EALSOverlayState::Default:
+	case EALSOverlayState::Masculine:
+	case EALSOverlayState::Feminine:
+	case EALSOverlayState::Injured:
+	case EALSOverlayState::HandsTied:
+	case EALSOverlayState::Torch:
+	case EALSOverlayState::Binoculars:
+	case EALSOverlayState::Box:
+	case EALSOverlayState::Barrel:
+		return false;
+	case EALSOverlayState::Rifle:
+	case EALSOverlayState::PistolOneHanded:
+	case EALSOverlayState::PistolTwoHanded:
+	case EALSOverlayState::Shotgun:
+	case EALSOverlayState::Sniper:
+	case EALSOverlayState::Launcher:
+	case EALSOverlayState::Sword:
+	case EALSOverlayState::Knife:
+	case EALSOverlayState::Chainsaw:
+	case EALSOverlayState::SwordShield:
+	case EALSOverlayState::Melee:
+	case EALSOverlayState::Bow:
+	default:
+		return true;
+	}
+}
+
+// bool UALSCharacterAnimInstance::GetCanMoveLFtoMoveLB() const
+// {
+// 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+// 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetCanMoveLFtoMoveLB);
+// 	const float CurveValue = GetCurveValue(FName("HipOrientation_Bias"));
+// 	const bool bCurveTrue = UKismetMathLibrary::Abs(CurveValue) < 0.5f;
+// 	// GetStateMachineInstanceFromName()
+// 	// GetInstanceStateWeight()
+// 	// return (CharacterInformation.bIsMoving && CharacterInformation.bHasMovementInput) ||
+// 	// 	CharacterInformation.Speed > 150.0f;
+// }
+
+bool UALSCharacterAnimInstance::GetHipOrientationBiasOverHalf() const
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::PlayDynamicTransition);
+	const float CurveValue = GetCurveValue(FName("HipOrientation_Bias"));
+	return UKismetMathLibrary::Abs(CurveValue) > 0.5f;
+}
+
+bool UALSCharacterAnimInstance::GetPreStopToFootUpRule() const
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::PlayDynamicTransition);
+	const float CurveValue = GetCurveValue(FName("Feet_Position"));
+	return UKismetMathLibrary::Abs(CurveValue) < 0.5f;
+}
+
+bool UALSCharacterAnimInstance::GetPreStopToFootDownRule() const
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::PlayDynamicTransition);
+	const float CurveValue = GetCurveValue(FName("Feet_Position"));
+	return UKismetMathLibrary::Abs(CurveValue) >= 0.5f;
+}
+
+bool UALSCharacterAnimInstance::GetFeetCrossing() const
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::PlayDynamicTransition);
+	const float CurveValue = GetCurveValue(FName("Feet_Crossing"));
+	return CurveValue != 0.0f;
+}
+
+bool UALSCharacterAnimInstance::GetRightFootRule() const
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::PlayDynamicTransition);
+	const float CurveValue = GetCurveValue(FName("Feet_Position"));
+	return CurveValue > 0.0f;
+}
+
+bool UALSCharacterAnimInstance::GetLeftFootRule() const
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::PlayDynamicTransition);
+	const float CurveValue = GetCurveValue(FName("Feet_Position"));
+	return CurveValue < 0.0f;
+}
+
+bool UALSCharacterAnimInstance::GetHipsRightRule() const
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::PlayDynamicTransition);
+	const float CurveValue = GetCurveValue(FName("HipOrientation_Bias"));
+	const bool bHips =  UKismetMathLibrary::Abs(CurveValue) > 0.5f;
+	const float CurveValueFeet = GetCurveValue(FName("Feet_Crossing"));
+	const bool bCurveTrue = CurveValueFeet == 0.0f;
+	return bHips && bCurveTrue;
+}
+
+bool UALSCharacterAnimInstance::GetHipsLeftRule() const
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::PlayDynamicTransition);
+	const float CurveValue = GetCurveValue(FName("HipOrientation_Bias"));
+	const bool bHip =  UKismetMathLibrary::Abs(CurveValue) < -0.5f;
+	const float CurveValueFeet = GetCurveValue(FName("Feet_Crossing"));
+	const bool bCurveTrue = CurveValueFeet == 0.0f;
+	return bHip && bCurveTrue;
+}
+
+bool UALSCharacterAnimInstance::GetLookTowardFRule() const
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::PlayDynamicTransition);
+	return UKismetMathLibrary::InRange_FloatFloat(SmoothedAimingAngle.X, -1.0f * SmoothedAimingAngleFMax, SmoothedAimingAngleFMax, true, true);
+}
+
+bool UALSCharacterAnimInstance::GetLookTowardRBRule() const
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::PlayDynamicTransition);
+	return UKismetMathLibrary::InRange_FloatFloat(SmoothedAimingAngle.X, SmoothedAimingAngleRBMin, SmoothedAimingAngleRBMax, true, true);
+}
+
+bool UALSCharacterAnimInstance::GetLookTowardLBRule() const
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::PlayDynamicTransition);
+	return UKismetMathLibrary::InRange_FloatFloat(SmoothedAimingAngle.X, -1.0f *SmoothedAimingAngleRBMax, -1.0f * SmoothedAimingAngleRBMin, true, true);
+}
+
+bool UALSCharacterAnimInstance::GetRunningToWalkingRule() const
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::PlayDynamicTransition);
+	const bool bWalking = Gait.Walking();
+	const float CurveValue = GetCurveValue(FName("W_Gait"));
+	const bool bCurveTrue = CurveValue < 1.2f;
+	return bWalking && bCurveTrue;
+}
+
+bool UALSCharacterAnimInstance::GetEntryToCrouchingLFRule() const
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::PlayDynamicTransition);
+	const float CurveValue = GetCurveValue(FName("BasePose_CLF"));
+	return CurveValue >= 0.5f;
+}
+
+bool UALSCharacterAnimInstance::GetEntryToStandingRule() const
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::PlayDynamicTransition);
+	const float CurveValue = GetCurveValue(FName("BasePose_CLF"));
+	return CurveValue < 0.5f;
+}
+
+bool UALSCharacterAnimInstance::GetInterruptTransitionRule() const
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::PlayDynamicTransition);
+	return (Grounded.bShouldMove || Grounded.bRotateL || Grounded.bRotateR);
+}
+
+bool UALSCharacterAnimInstance::GetEntryToJumpRightFoot() const
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::PlayDynamicTransition);
+	const float CurveValue = GetCurveValue(FName("Feet_Position"));
+	return CurveValue >= 0.0f;
+}
+
+bool UALSCharacterAnimInstance::GetLandToGroundRule() const
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::PlayDynamicTransition);
+	return (MovementState.Grounded() == false) || (Stance.Standing() == false);
+}
+
+bool UALSCharacterAnimInstance::GetMoveLFToMoveLBRule() const
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::PlayDynamicTransition);
+	const float CurveValue = GetCurveValue(FName("HipOrientation_Bias"));
+	const bool bCurveTrue =  UKismetMathLibrary::Abs(CurveValue) < 0.5f;
+	const bool bWeight = GetStateWeightByName(FName("CLF_Directional States"), FName("Move LF")) == 1.0f;
+	const bool bFeetCrossing = GetCurveValue(FName("Feet_Crossing")) == 0.0f;
+	return bCurveTrue && bWeight && bFeetCrossing;
+}
+
+bool UALSCharacterAnimInstance::GetMoveRBtoMoveRFRule() const
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::PlayDynamicTransition);
+	const float CurveValue = GetCurveValue(FName("HipOrientation_Bias"));
+	const bool bCurveTrue =  UKismetMathLibrary::Abs(CurveValue) < 0.5f;
+	const bool bWeight = GetStateWeightByName(FName("CLF_Directional States"), FName("Move RB")) == 1.0f;
+	const bool bFeetCrossing = GetCurveValue(FName("Feet_Crossing")) == 0.0f;
+	return bCurveTrue && bWeight && bFeetCrossing;
+}
+
+bool UALSCharacterAnimInstance::GetLookingLeftAndBackToLookingForwardRule() const
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::PlayDynamicTransition);
+	const bool bInRange = UKismetMathLibrary::InRange_FloatFloat(SmoothedAimingAngle.X, -1.0f *SmoothedAimingAngleFMax, -1.0f * SmoothedAimingAngleFMax, true, true);
+	const bool bWeight = GetStateWeightByName(FName("Look Towards Camera States"), FName("Looking Left and Back")) != 1.0f;
+	return bInRange && bWeight;
+}
+
+bool UALSCharacterAnimInstance::GetLookingRightAndBackToLookingForwardRule() const
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::PlayDynamicTransition);
+	const bool bInRange = UKismetMathLibrary::InRange_FloatFloat(SmoothedAimingAngle.X, -1.0f *SmoothedAimingAngleFMax, -1.0f * SmoothedAimingAngleFMax, true, true);
+	const bool bWeight = GetStateWeightByName(FName("Look Towards Camera States"), FName("Looking Right and Back")) != 1.0f;
+	return bInRange && bWeight;
+}
+
+// bool UALSCharacterAnimInstance::GetLookingForwardsToLookingRightBackRule() const
+// {
+// }
+//
+// bool UALSCharacterAnimInstance::GetLookingForwardsToLookingLeftBackRule() const
+// {
+// }
+
+bool UALSCharacterAnimInstance::GetLookingToCameraNoOffsetRule() const
+{
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::PlayDynamicTransition);
+	return GetCurrentStateTimeByName(FName("Look Towards Camera States")) > 2.0f;
+}
+
+// bool UALSCharacterAnimInstance::GetJumpLeftFootToJumpLoopRule() const
+// {
+// 	const FAnimNode_StateMachine* StateMachine = GetStateMachineInstanceFromName(FName("Jump States"));
+// 	IAnimClassInterface* Interface = IAnimClassInterface::GetFromClass(GetClass());
+// 	const FBakedAnimationStateMachine* Baked = GetMachineDescription( Interface, StateMachine );
+// 	int32 StateIdx = Baked->FindStateIndex( FName("Jump Left Foot"));
+//     // if(StateIdx != INDEX_NONE )
+//     // {
+//     // 	return StateMachine->GetStateWeight(StateIdx);
+//     // }
+// 	StateMachine->GetRelevantAnimTimeRemaining()
+// 	GetRelevantAnimTimeRemaining() == 0.0f;
+// }
+
+// float UALSCharacterAnimInstance::GetStateWeightByName(const FName& MachineName, const FName& StateName) const
+// {
+// 	// Get the state machine instance by name
+// 	const FAnimNode_StateMachine* Machine = GetStateMachineInstanceFromName(MachineName);
+// 	if(Machine == nullptr)
+// 	{
+// 		UE_LOG(LogTemp, Warning, TEXT("Machine '%s' not found"), *MachineName.ToString());
+// 		return 0.0f;
+// 	}
+// 	IAnimClassInterface* Interface = IAnimClassInterface::GetFromClass(GetClass());
+// 	UALSCharacterAnimInstance* NonConstSelf = const_cast<UALSCharacterAnimInstance*>(this);
+// 	const FBakedAnimationStateMachine* Baked = NonConstSelf->GetMachineDescription(Interface, const_cast<FAnimNode_StateMachine*>(Machine));
+// 	// const FBakedAnimationStateMachine* BakedMachine = GetMachineDescription(Interface, Machine);
+// 	if(Baked == nullptr)
+// 	{
+// 		UE_LOG(LogTemp, Warning, TEXT("Baked machine '%s' not found"), *MachineName.ToString());
+// 		return 0.0f;
+// 	}
+// 	const int32 StateIndex = Baked->FindStateIndex(StateName);
+// 	if(StateIndex == INDEX_NONE)
+// 	{
+// 		UE_LOG(LogTemp, Warning, TEXT("State '%s' not found in machine '%s'"), *StateName.ToString(), *MachineName.ToString());
+// 		return 0.0f;
+// 	}
+// 	return Machine->GetStateWeight(StateIndex);
+// }
+
+// int32 UALSCharacterAnimInstance::GetMachineIndex(const FName& Name) const
+// {
+// 	return GetStateMachineIndex(Name);
+// 	// const FAnimNode_StateMachine* StateMachine = GetStateMachineInstanceFromName(Name);
+// 	// if(StateMachine == nullptr){return INDEX_NONE;}
+// 	// return StateMachine->GetNodeIndex();
+// }
+
+// int32 UALSCharacterAnimInstance::GetStateIndex(const FName& Name) const
+// {
+// 	GetStateMachineInstanceFromName();
+// 	// IAnimClassInterface* Interface = IAnimClassInterface::GetFromClass(GetClass());
+// 	// const FBakedAnimationStateMachine* Baked = GetMachineDescription( Interface, StateMachine );
+// }
+
+// int32 UALSCharacterAnimInstance::GetStateMachineIndex(const FName& Name) const
+// {
+// 	const FAnimNode_StateMachine* StateMachine = GetStateMachineInstanceFromName(Name);
+// 	if(StateMachine == nullptr){return INDEX_NONE;}
+// 	return StateMachine->GetNodeIndex();
+// }
 
 bool UALSCharacterAnimInstance::ShouldMoveCheck() const
 {
@@ -401,7 +880,7 @@ void UALSCharacterAnimInstance::UpdateFootIK(float DeltaSeconds)
 
 void UALSCharacterAnimInstance::SetFootLocking(float DeltaSeconds, FName EnableFootIKCurve, FName FootLockCurve,
                                                FName IKFootBone, float& CurFootLockAlpha, bool& UseFootLockCurve,
-                                               FVector& CurFootLockLoc, FRotator& CurFootLockRot)
+                                               FVector& CurFootLockLoc, FRotator& CurFootLockRot) const
 {
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::SetFootLocking);
@@ -449,7 +928,7 @@ void UALSCharacterAnimInstance::SetFootLocking(float DeltaSeconds, FName EnableF
 	}
 }
 
-void UALSCharacterAnimInstance::SetFootLockOffsets(float DeltaSeconds, FVector& LocalLoc, FRotator& LocalRot)
+void UALSCharacterAnimInstance::SetFootLockOffsets(float DeltaSeconds, FVector& LocalLoc, FRotator& LocalRot) const
 {
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::SetFootLockOffsets);
@@ -523,7 +1002,7 @@ void UALSCharacterAnimInstance::ResetIKOffsets(float DeltaSeconds)
 
 void UALSCharacterAnimInstance::SetFootOffsets(float DeltaSeconds, FName EnableFootIKCurve, FName IKFootBone,
                                                FName RootBone, FVector& CurLocationTarget, FVector& CurLocationOffset,
-                                               FRotator& CurRotationOffset)
+                                               FRotator& CurRotationOffset) const
 {
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::SetFootOffsets);
@@ -1067,40 +1546,40 @@ void UALSCharacterAnimInstance::OnPivot()
 	                                  &UALSCharacterAnimInstance::OnPivotDelay, 0.1f, false);
 }
 
-void UALSCharacterAnimInstance::SetFiringWeapon(const bool bValue)
-{
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
-	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::SetFiringWeapon);
-	bFiringWeapon = bValue;
-}
-
-void UALSCharacterAnimInstance::SetRecoilTransform(const FTransform& Transform)
-{
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
-	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::SetRecoilTransform);
-	RecoilTransform.SetLocation(Transform.GetLocation());
-	RecoilTransform.SetRotation(Transform.GetRotation());
-}
-
-void UALSCharacterAnimInstance::SetPivotPoint(const FTransform& Transform)
-{
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
-	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::SetPivotPoint);
-	PivotPoint = Transform;
-}
-
-void UALSCharacterAnimInstance::DisableFootIK(const float DelayTime)
-{
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
-	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::DisableFootIK);
-	OnDisableFootIK(DelayTime);
-}
-
-void UALSCharacterAnimInstance::SetInjured(const EBodyPartName BodyPartName, const float InjuredAmount)
-{
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
-	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::SetInjured);
-	InjuredBodyPart = BodyPartName;
-	InjuredAlpha = InjuredAmount;
-	OnInjured(BodyPartName, InjuredAmount);
-}
+// void UALSCharacterAnimInstance::SetFiringWeapon(const bool bValue)
+// {
+// 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+// 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::SetFiringWeapon);
+// 	bFiringWeapon = bValue;
+// }
+//
+// void UALSCharacterAnimInstance::SetRecoilTransform(const FTransform& Transform)
+// {
+// 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+// 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::SetRecoilTransform);
+// 	RecoilTransform.SetLocation(Transform.GetLocation());
+// 	RecoilTransform.SetRotation(Transform.GetRotation());
+// }
+//
+// void UALSCharacterAnimInstance::SetPivotPoint(const FTransform& Transform)
+// {
+// 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+// 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::SetPivotPoint);
+// 	PivotPoint = Transform;
+// }
+//
+// void UALSCharacterAnimInstance::DisableFootIK(const float DelayTime)
+// {
+// 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+// 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::DisableFootIK);
+// 	OnDisableFootIK(DelayTime);
+// }
+//
+// void UALSCharacterAnimInstance::SetInjured(const EBodyPartName BodyPartName, const float InjuredAmount)
+// {
+// 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+// 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::SetInjured);
+// 	InjuredBodyPart = BodyPartName;
+// 	InjuredAlpha = InjuredAmount;
+// 	OnInjured(BodyPartName, InjuredAmount);
+// }
