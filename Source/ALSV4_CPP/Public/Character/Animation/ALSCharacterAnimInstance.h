@@ -30,6 +30,9 @@ class ALSV4_CPP_API UALSCharacterAnimInstance : public UCharacterAnimInstance, p
 	GENERATED_BODY()
 
 public:
+
+	UALSCharacterAnimInstance();
+	
 	virtual void NativeInitializeAnimation() override;
 
 	virtual void NativeBeginPlay() override;
@@ -76,7 +79,24 @@ public:
 
 protected:
 	/** Optimizations  */
+
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="ALS|Debug")
+	bool bStopNativeUpdateAnimation = false;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="ALS|Debug")
+	bool bStopNativeThreadSafeUpdateAnimation = false;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="ALS|Optimization")
+	TArray<FAnimStateMachineInfo> StateMachineData;
+	UPROPERTY(Transient)
+	bool bHasInitializedIndexes = false;
 	
+	void GetStateMachineIndexes();
+	bool GetStateWeight(const FName& MachineName, const FName& StateName, float& OutWeight) const;
+	bool GetAnimTimeRemaining(const FName& MachineName, const FName& StateName, float& OutTime) const;
+	bool GetMachineWeight(const FName& MachineName, float& OutWeight) const;
+	bool GetCurrentStateTime(const FName& MachineName, float& OutTime) const;
+
+	//Figure out all indexes of Needed States and Weights etc. optimize  
 	// Returns if the HipOrientation_Bias ABS < 0.5f
 	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
 	bool GetHipOrientationBiasOverHalf() const;
@@ -118,19 +138,82 @@ protected:
 	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
 	bool GetMoveRBtoMoveRFRule() const;
 	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetMoveLBtoMoveLFRule() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
 	bool GetLookingLeftAndBackToLookingForwardRule() const;
 	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
 	bool GetLookingRightAndBackToLookingForwardRule() const;
-	// UFUNCTION(BlueprintCallable, Category="ALS|Rules")
-	// bool GetLookingForwardsToLookingRightBackRule() const;
-	// UFUNCTION(BlueprintCallable, Category="ALS|Rules")
-	// bool GetLookingForwardsToLookingLeftBackRule() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetLookingForwardsToLookingRightBackRule() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetLookingForwardsToLookingLeftBackRule() const;
 	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
 	bool GetLookingToCameraNoOffsetRule() const;
 
-	// UFUNCTION(BlueprintCallable, Category="Custom ALS")
-	// bool GetJumpLeftFootToJumpLoopRule() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetMovingToStopRule() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetStopToNotMovingRule() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetCLFMovingToStopRule() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetCLFStopToNotMovingRule() const;
 
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetWalkingToRunningRule() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetWalkingToRunRule() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetWalkRunToRunningRule() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetFirstPivotToSecondPivotRule() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetPivotToNRunningRule() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetSecondPivotToNRunningRule() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetSecondPivotToFirstPivotRule() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetRunToNRunStartRule() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetRunToNWalkRule() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetRunStartToNRunning() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetJumpLeftFootToJumpLoopRule() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetJumpRightFootToJumpLoopRule() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetLandToGroundedRule() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetLandToLandMovementRule() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetLandToGroundedOtherRule() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetLandMovementToGroundedRule() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetLandToLandMovement() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetRifleReadyToRifleRelaxedRule() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetRifleReadyToRifleRelaxedSecondRule() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetInAirOrSprintingRule() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetPistolReadyToPistolRelaxedRule() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetPistolReadyToPistolRelaxedSecondRule() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetPistol2HReadyToPistolRelaxedRule() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetPistol2HReadyToPistolRelaxedSecondRule() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetBowReadyToBowRelaxedRule() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetBowReadyToBowRelaxedSecondRule() const;
+
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules", meta = (BlueprintThreadSafe))
+	float GetAirFallSpeedABS() const;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="ALS|Extras")
 	float SmoothedAimingAngleFMax = 125.0f;

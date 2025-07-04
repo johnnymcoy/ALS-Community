@@ -83,8 +83,9 @@ void UALSCharacterMovementComponent::PhysWalking(float deltaTime, int32 Iteratio
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterMovementComponent::PhysWalking);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Movement);
 
-	if (CurrentMovementSettings.MovementCurve)
+	if(CurrentMovementSettings.MovementCurve)
 	{
+		TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterMovementComponent::PhysWalking::MovementCurve);
 		// Update the Ground Friction using the Movement Curve.
 		// This allows for fine control over movement behavior at each speed.
 		GroundFriction = CurrentMovementSettings.MovementCurve->GetVectorValue(GetMappedSpeed()).Z;

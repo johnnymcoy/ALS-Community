@@ -4,6 +4,7 @@
 
 #include "Character/ALSBaseCharacter.h"
 
+#include "IAnimationBudgetAllocator.h"
 #include "SkeletalMeshComponentBudgeted.h"
 #include "Character/Animation/ALSCharacterAnimInstance.h"
 #include "Character/Animation/ALSPlayerCameraBehavior.h"
@@ -1252,14 +1253,12 @@ void AALSBaseCharacter::OnRotationModeChanged(EALSRotationMode PreviousRotationM
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::OnRotationModeChanged);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
-
 	if (RotationMode == EALSRotationMode::VelocityDirection && ViewMode == EALSViewMode::FirstPerson)
 	{
 		// If the new rotation mode is Velocity Direction and the character is in First Person,
 		// set the viewmode to Third Person.
 		SetViewMode(EALSViewMode::ThirdPerson);
 	}
-
 	if (CameraBehavior)
 	{
 		CameraBehavior->SetRotationMode(RotationMode);
@@ -1377,7 +1376,7 @@ void AALSBaseCharacter::SetEssentialValues(float DeltaTime)
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("ALS SetEssentialValues"), STAT_ALS_SetEssentialValues, STATGROUP_ALS)
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
-
+	if(bSetEssentialValues == false){return;}
 
 	if (GetLocalRole() != ROLE_SimulatedProxy)
 	{
@@ -1518,7 +1517,7 @@ void AALSBaseCharacter::UpdateGroundedRotation(float DeltaTime)
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Base_Character_UpdateGroundedRotation);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
-
+	if(bUpdateGroundedRotation == false){return;}
 	if(bOptimizeGroundRotation)
 	{
 		if (MovementAction != EALSMovementAction::None)
@@ -1649,6 +1648,44 @@ void AALSBaseCharacter::UpdateGroundedRotation(float DeltaTime)
 	// Other actions are ignored...
 }
 
+void AALSBaseCharacter::RegisterComponentForBudget() const
+{
+	if(GetMesh() == nullptr){return;}
+	USkeletalMeshComponentBudgeted* MeshBudgeted = Cast<USkeletalMeshComponentBudgeted>(GetMesh());
+	if(MeshBudgeted == nullptr){return;}
+	IAnimationBudgetAllocator* Allocator = IAnimationBudgetAllocator::Get(GetWorld());
+	if(Allocator)
+	{
+		Allocator->RegisterComponent(MeshBudgeted);
+	}
+}
+
+void AALSBaseCharacter::UnregisterComponentFromBudget() const
+{
+	if(GetMesh() == nullptr){return;}
+	USkeletalMeshComponentBudgeted* MeshBudgeted = Cast<USkeletalMeshComponentBudgeted>(GetMesh());
+	if(MeshBudgeted == nullptr){return;}
+	IAnimationBudgetAllocator* Allocator = IAnimationBudgetAllocator::Get(GetWorld());
+	if(Allocator)
+	{
+		Allocator->UnregisterComponent(MeshBudgeted);
+		MeshBudgeted->SetComponentTickEnabled(true);
+	}
+}
+
+void AALSBaseCharacter::SetSignificanceValue(const float Value, const bool bNeverSkip,
+	const bool bTickEvenIfNotRendered, const bool bAllowReducedWork, const bool bForceInterpolate) const
+{
+	if(GetMesh() == nullptr){return;}
+	USkeletalMeshComponentBudgeted* MeshBudgeted = Cast<USkeletalMeshComponentBudgeted>(GetMesh());
+	if(MeshBudgeted == nullptr){return;}
+	IAnimationBudgetAllocator* Allocator = IAnimationBudgetAllocator::Get(GetWorld());
+	if(Allocator)
+	{
+		Allocator->RegisterComponent(MeshBudgeted);
+	}
+}
+
 void AALSBaseCharacter::HandleNonMovingRotation(float DeltaTime)
 {
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("ALS HandleNonMovingRotation"), STAT_ALS_HandleNonMovingRotation, STATGROUP_ALS)
@@ -1732,7 +1769,7 @@ EALSGait AALSBaseCharacter::GetActualGait(EALSGait AllowedGait) const
 	// Get the Actual Gait. This is calculated by the actual movement of the character,  and so it can be different
 	// from the desired gait or allowed gait. For instance, if the Allowed Gait becomes walking,
 	// the Actual gait will still be running until the character decelerates to the walking speed.
-
+	if(MyCharacterMovementComponent == nullptr){return AllowedGait;}
 	const float LocWalkSpeed = MyCharacterMovementComponent->CurrentMovementSettings.WalkSpeed;
 	const float LocRunSpeed = MyCharacterMovementComponent->CurrentMovementSettings.RunSpeed;
 

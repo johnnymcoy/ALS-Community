@@ -12,7 +12,50 @@
 
 #include "ALSAnimationStructLibrary.generated.h"
 
+USTRUCT(BlueprintType)
+struct FAnimStateInfo
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS|State Machines")
+	FName Name;
+	
+	void SetIndex(const int32 Value)
+	{
+		Index = Value;
+		bIndexSet = true;
+	};
+	bool bIndexSet = false;
+	int32 GetIndex() const{ return Index;};
 
+	FAnimStateInfo(){};
+	explicit FAnimStateInfo(const FName& In_Name) : Name(In_Name) {};
+private:
+	int32 Index = 0;
+
+};
+
+USTRUCT(BlueprintType)
+struct FAnimStateMachineInfo
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS|State Machines")
+	FAnimStateInfo Machine;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS|State Machines")
+	TArray<FAnimStateInfo> States;
+
+	// bool bComplete = false;
+	int32 GetIndex() const{ return Machine.GetIndex();};
+	FName GetName() const{ return Machine.Name;}
+	FAnimStateMachineInfo(){};
+	explicit FAnimStateMachineInfo(const FName& MachineName, const TArray<FName>& StateNames) : Machine(MachineName), States(StateNames){};
+
+	bool operator==(const FAnimStateMachineInfo& Other) const
+	{
+		return Machine.Name.ToString() == Other.Machine.Name.ToString();
+	}
+};
 
 USTRUCT(BlueprintType)
 struct FALSDynamicMontageParams

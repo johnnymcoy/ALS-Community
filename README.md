@@ -33,3 +33,21 @@ Instructions for setting up the plugin can be found on [Wiki](https://github.com
 
 ## License & Contribution
 **Source code** of the plugin is licensed under MIT license, and other developers are encouraged to fork the repository, open issues & pull requests to help the development.
+
+
+## Optimizations
+
+Animation BP
+Fast Path all Animation Transitions 
+
+GetStateWeightByName
+GetCurrentStateTimeByName
+
+ALS Base Character
+SetEssentialValues 
+UpdateGroundRotation->GetAnimCurveValue
+
+Debug Component uses a lot 
+
+Character movement 
+- PhysWalking

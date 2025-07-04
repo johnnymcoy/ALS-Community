@@ -484,18 +484,6 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UALSCharacterMovementComponent> MyCharacterMovementComponent;
 
-	/** Optimizations		*/
-	UPROPERTY(EditAnywhere,  BlueprintReadWrite, Category = "ALS|Optimization")
-	bool bOptimizeGroundRotation = true;
-	UPROPERTY(EditAnywhere,  BlueprintReadWrite, Category = "ALS|Optimization")
-	bool bOptimizeAnimValues = true;
-	
-	void HandleNonMovingRotation(float DeltaTime);
-
-	FALSAnimValues AnimValues;
-	IALSAnimInterface* AnimInstanceInterface;
-	
-	/** Optimizations		*/
 
 	/** Input */
 
@@ -537,6 +525,30 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "ALS|Camera System")
 	bool bAimDownSights = false;
 
+	/** Optimizations		*/
+	UPROPERTY(EditAnywhere,  BlueprintReadWrite, Category = "ALS|Optimization")
+	bool bOptimizeGroundRotation = true;
+	UPROPERTY(EditAnywhere,  BlueprintReadWrite, Category = "ALS|Optimization")
+	bool bOptimizeAnimValues = true;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "ALS|Debug|Anim")
+	bool bSetEssentialValues = true;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "ALS|Debug|Anim")
+	bool bUpdateGroundedRotation = true;
+
+	UFUNCTION(BlueprintCallable, Category="ALS|Optimization")
+	void RegisterComponentForBudget() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Optimization")
+	void UnregisterComponentFromBudget() const;
+	UFUNCTION(BlueprintCallable, BlueprintPure=false, Category="ALS|Optimization")
+	void SetSignificanceValue(const float Value, const bool bNeverSkip = false, const bool bTickEvenIfNotRendered = false, const bool bAllowReducedWork = true, const bool bForceInterpolate = false) const;
+
+	void HandleNonMovingRotation(float DeltaTime);
+
+	FALSAnimValues AnimValues;
+	IALSAnimInterface* AnimInstanceInterface;
+	
+	/** Optimizations		*/
+
 	//--- Ragdoll Optimizations --//
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "ALS|Debug|Ragdoll")
 	bool bDisableRagdollUpdate = false;
@@ -554,6 +566,7 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "ALS|Debug|Ragdoll")
 	bool bRagdollFacing = true;
 	
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "ALS|Movement System")
 	FDataTableRowHandle MovementModel;
 
