@@ -15,8 +15,8 @@ bool UALSDebugComponent::bShowTraces = false;
 bool UALSDebugComponent::bShowDebugShapes = false;
 bool UALSDebugComponent::bShowLayerColors = false;
 
-DECLARE_CYCLE_STAT(TEXT("ALS Debug Component (All Functions)"), STATGROUP_ALS_Debug_Component, STATGROUP_ALS);
-DECLARE_CYCLE_STAT(TEXT("ALS Debug Component Tick"), STATGROUP_ALS_Debug_Component_Tick, STATGROUP_ALS);
+DECLARE_CYCLE_STAT(TEXT("ALS Debug Component (All Functions)"), STAT_ALS_Debug_Component, STATGROUP_ALS);
+DECLARE_CYCLE_STAT(TEXT("ALS Debug Component Tick"), STAT_ALS_Debug_Component_Tick, STATGROUP_ALS);
 
 
 UALSDebugComponent::UALSDebugComponent()
@@ -32,8 +32,8 @@ void UALSDebugComponent::TickComponent(float DeltaTime, ELevelTick TickType,
                                        FActorComponentTickFunction* ThisTickFunction)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSDebugComponent::TickComponent);
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Debug_Component);
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Debug_Component_Tick);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Debug_Component);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Debug_Component_Tick);
 
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
@@ -78,7 +78,7 @@ void UALSDebugComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 void UALSDebugComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSDebugComponent::OnComponentDestroyed);
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Debug_Component);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Debug_Component);
 
 	Super::OnComponentDestroyed(bDestroyingHierarchy);
 
@@ -92,7 +92,7 @@ void UALSDebugComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 void UALSDebugComponent::FocusedDebugCharacterCycle(bool bValue)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSDebugComponent::FocusedDebugCharacterCycle);
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Debug_Component);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Debug_Component);
 
 	// Refresh list, so we can also debug runtime spawned characters & remove despawned characters back
 	DetectDebuggableCharactersInWorld();
@@ -128,7 +128,7 @@ void UALSDebugComponent::FocusedDebugCharacterCycle(bool bValue)
 void UALSDebugComponent::BeginPlay()
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSDebugComponent::BeginPlay);
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Debug_Component);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Debug_Component);
 
 	Super::BeginPlay();
 
@@ -144,7 +144,7 @@ void UALSDebugComponent::BeginPlay()
 void UALSDebugComponent::DetectDebuggableCharactersInWorld()
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSDebugComponent::DetectDebuggableCharactersInWorld);
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Debug_Component);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Debug_Component);
 
 	// Get all ALSBaseCharacter's, which are currently present to show them later in the ALS HUD for debugging purposes.
 	TArray<AActor*> AlsBaseCharacters;
@@ -174,7 +174,7 @@ void UALSDebugComponent::DetectDebuggableCharactersInWorld()
 void UALSDebugComponent::ToggleGlobalTimeDilationLocal(float TimeDilation)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSDebugComponent::ToggleGlobalTimeDilationLocal);
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Debug_Component);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Debug_Component);
 
 	if (UKismetSystemLibrary::IsStandalone(this))
 	{
@@ -185,7 +185,7 @@ void UALSDebugComponent::ToggleGlobalTimeDilationLocal(float TimeDilation)
 void UALSDebugComponent::ToggleSlomo()
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSDebugComponent::ToggleSlomo);
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Debug_Component);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Debug_Component);
 
 	bSlomo = !bSlomo;
 	ToggleGlobalTimeDilationLocal(bSlomo ? 0.15f : 1.f);
@@ -194,7 +194,7 @@ void UALSDebugComponent::ToggleSlomo()
 void UALSDebugComponent::ToggleDebugView()
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSDebugComponent::ToggleDebugView);
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Debug_Component);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Debug_Component);
 
 	bDebugView = !bDebugView;
 
@@ -222,7 +222,7 @@ void UALSDebugComponent::OverlayMenuCycle_Implementation(bool bValue)
 void UALSDebugComponent::ToggleDebugMesh()
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSDebugComponent::ToggleDebugMesh);
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Debug_Component);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Debug_Component);
 
 	if (bDebugMeshVisible)
 	{
@@ -250,7 +250,7 @@ void UALSDebugComponent::DrawDebugLineTraceSingle(const UWorld* World,
 	                                                float DrawTime)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSDebugComponent::DrawDebugLineTraceSingle);
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Debug_Component);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Debug_Component);
 
 	if (DrawDebugType != EDrawDebugTrace::None)
 	{
@@ -284,7 +284,7 @@ void UALSDebugComponent::DrawDebugCapsuleTraceSingle(const UWorld* World,
 	                                                   float DrawTime)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSDebugComponent::DrawDebugCapsuleTraceSingle);
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Debug_Component);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Debug_Component);
 
 	if (DrawDebugType != EDrawDebugTrace::None)
 	{
@@ -322,7 +322,7 @@ static void DrawDebugSweptSphere(const UWorld* InWorld,
 	                        uint8 DepthPriority = 0)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSDebugComponent::DrawDebugSweptSphere);
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Debug_Component);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Debug_Component);
 
 	FVector const TraceVec = End - Start;
 	float const Dist = TraceVec.Size();
@@ -346,7 +346,7 @@ void UALSDebugComponent::DrawDebugSphereTraceSingle(const UWorld* World,
 	                                                  float DrawTime)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSDebugComponent::DrawDebugSphereTraceSingle);
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Debug_Component);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Debug_Component);
 
 	if (DrawDebugType != EDrawDebugTrace::None)
 	{

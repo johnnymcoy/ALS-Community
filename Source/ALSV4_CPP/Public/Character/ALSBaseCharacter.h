@@ -366,28 +366,16 @@ public:
 	
 	/** Input */
 
-	// UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "ALS|Input")
-	virtual void ForwardMovementAction(float Value);
+	virtual void ForwardMovementAction(const float Value) override;
+	virtual void RightMovementAction(const float Value) override;
+	// virtual void CameraUpAction(const float Value) override;
+	// virtual void CameraRightAction(const float Value) override;
+	virtual void JumpAction(const bool bValue) override;
+	virtual void AimAction(const bool bValue) override;
 
-	// UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "ALS|Input")
-	virtual void RightMovementAction(float Value);
-
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "ALS|Input")
-	void CameraUpAction(float Value);
-
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "ALS|Input")
-	void CameraRightAction(float Value);
-
-	// UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "ALS|Input")
-	virtual void JumpAction(bool bValue);
-
-	// UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "ALS|Input")
 	virtual void SprintAction(bool bValue);
 
-	// UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "ALS|Input")
-	virtual void AimAction(bool bValue);
 
-	// UFUNCTION(BlueprintCallable, Category = "ALS|Input")
 	virtual void CameraTapAction();
 
 	// UFUNCTION(BlueprintCallable, Category = "ALS|Input")
@@ -495,13 +483,7 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = "ALS|Input")
 	EALSStance DesiredStance = EALSStance::Standing;
-
-	UPROPERTY(EditDefaultsOnly, Category = "ALS|Input", BlueprintReadOnly)
-	float LookUpDownRate = 1.25f;
-
-	UPROPERTY(EditDefaultsOnly, Category = "ALS|Input", BlueprintReadOnly)
-	float LookLeftRightRate = 1.25f;
-
+	
 	UPROPERTY(EditDefaultsOnly, Category = "ALS|Input", BlueprintReadOnly)
 	float RollDoubleTapTimeout = 0.3f;
 

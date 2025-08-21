@@ -14,6 +14,7 @@
 #include "NiagaraFunctionLibrary.h"
 #include "Sound/SoundBase.h"
 
+DECLARE_CYCLE_STAT(TEXT("Footstep Notify"), STAT_ALS_FootstepNotify, STATGROUP_ALS);
 
 const FName NAME_Mask_FootstepSound(TEXT("Mask_FootstepSound"));
 
@@ -23,6 +24,8 @@ FName UALSAnimNotifyFootstep::NAME_Foot_R(TEXT("Foot_R"));
 
 void UALSAnimNotifyFootstep::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSAnimNotifyFootstep::Notify);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_FootstepNotify);
 	Super::Notify(MeshComp, Animation, EventReference);
 
 	if (!MeshComp)

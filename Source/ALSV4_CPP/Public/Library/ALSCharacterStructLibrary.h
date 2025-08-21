@@ -12,11 +12,6 @@
 
 #include "ALSCharacterStructLibrary.generated.h"
 
-
-DECLARE_STATS_GROUP(TEXT("ALS Stat Group"), STATGROUP_ALS, STATCAT_Advanced)
-// DECLARE_CYCLE_STAT_EXTERN(TEXT("ALS Animations (All Behaviors)"), STATGROUP_ALS_Animations, STATGROUP_ALS, ALSV4_CPP_API);
-
-
 class UCurveVector;
 class UAnimMontage;
 class UAnimSequenceBase;
@@ -25,6 +20,9 @@ class UNiagaraSystem;
 class UMaterialInterface;
 class USoundBase;
 class UPrimitiveComponent;
+
+DECLARE_STATS_GROUP(TEXT("ALS Stat Group"), STATGROUP_ALS, STATCAT_Advanced)
+
 
 USTRUCT(BlueprintType)
 struct FALSComponentAndTransform

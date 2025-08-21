@@ -41,8 +41,7 @@ protected:
 
 	virtual void CameraRightAction(const FInputActionValue& Value) override;
 
-	UFUNCTION()
-	void JumpAction(const FInputActionValue& Value);
+	virtual void JumpAction(const FInputActionValue& Value) override;
 
 	UFUNCTION()
 	void SprintAction(const FInputActionValue& Value);

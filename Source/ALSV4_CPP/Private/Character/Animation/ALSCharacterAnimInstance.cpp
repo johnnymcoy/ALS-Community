@@ -128,12 +128,12 @@ static const FName NAME__Machine__Bow_States(TEXT("Bow States"));
 // StateIndex_Flail = 4;
 
 
-DECLARE_CYCLE_STAT(TEXT("ALS Animations (All Functions)"), STATGROUP_ALS_Animations, STATGROUP_ALS);
-DECLARE_CYCLE_STAT(TEXT("ALS Animations (SetValues)"), STATGROUP_ALS_Animations_SetValues, STATGROUP_ALS);
-// DECLARE_CYCLE_STAT(TEXT("ALS (All Functions)"), STATGROUP_ALS_All, STATGROUP_ALS);
+DECLARE_CYCLE_STAT(TEXT("ALS Animations (All Functions)"), STAT_ALS_Animations, STATGROUP_ALS);
+DECLARE_CYCLE_STAT(TEXT("ALS Animations (SetValues)"), STAT_ALS_Animations_SetValues, STATGROUP_ALS);
+// DECLARE_CYCLE_STAT(TEXT("ALS (All Functions)"), STAT_ALS_All, STAT_ALS);
 
-// DECLARE_SCOPE_CYCLE_COUNTER(TEXT("ALS NativeUpdateAnimation"), STAT_ALS_NativeUpdateAnimation, STATGROUP_ALS)
-// DECLARE_SCOPE_CYCLE_COUNTER(TEXT("ALS ThreadSafeUpdateAnimation"), STAT_ALS_NativeThreadSafeUpdateAnimation, STATGROUP_ALS)
+// DECLARE_SCOPE_CYCLE_COUNTER(TEXT("ALS NativeUpdateAnimation"), STAT_ALS_NativeUpdateAnimation, STAT_ALS)
+// DECLARE_SCOPE_CYCLE_COUNTER(TEXT("ALS ThreadSafeUpdateAnimation"), STAT_ALS_NativeThreadSafeUpdateAnimation, STAT_ALS)
 
 
 UALSCharacterAnimInstance::UALSCharacterAnimInstance()
@@ -210,7 +210,7 @@ UALSCharacterAnimInstance::UALSCharacterAnimInstance()
 
 void UALSCharacterAnimInstance::NativeInitializeAnimation()
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::NativeInitializeAnimation);
 	Super::NativeInitializeAnimation();
 	Character = Cast<AALSBaseCharacter>(TryGetPawnOwner());
@@ -223,9 +223,9 @@ void UALSCharacterAnimInstance::NativeInitializeAnimation()
 
 void UALSCharacterAnimInstance::NativeBeginPlay()
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::NativeBeginPlay);
-	// SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
+	// SCOPE_CYCLE_COUNTER(STAT_ALS_All);
 
 	// it seems to be that the player pawn components are not really initialized
 	// when the call to NativeInitializeAnimation() happens.
@@ -239,10 +239,10 @@ void UALSCharacterAnimInstance::NativeBeginPlay()
 
 void UALSCharacterAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("ALS NativeUpdateAnimation"), STAT_ALS_NativeUpdateAnimation, STATGROUP_ALS)
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::NativeUpdateAnimation);
-	// SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
+	// SCOPE_CYCLE_COUNTER(STAT_ALS_All);
 	Super::NativeUpdateAnimation(DeltaSeconds);
 	if(bStopNativeUpdateAnimation){return;}
 
@@ -381,8 +381,8 @@ void UALSCharacterAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 
 void UALSCharacterAnimInstance::SetEssentialInfo(const FALSAnimValues& Value)
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations_SetValues);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations_SetValues);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::SetEssentialInfo);
 
 	CharacterInformation.MovementInputAmount = Value.CharacterInfo.MovementInputAmount;
@@ -448,7 +448,7 @@ void UALSCharacterAnimInstance::SetRotationMode(const FALSRotationMode Value)
 void UALSCharacterAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSeconds)
 {
 	Super::NativeThreadSafeUpdateAnimation(DeltaSeconds);
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("ALS ThreadSafeUpdateAnimation"), STAT_ALS_NativeThreadSafeUpdateAnimation, STATGROUP_ALS)
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::NativeThreadSafeUpdateAnimation);
 	if(bStopNativeThreadSafeUpdateAnimation){return;}
@@ -522,7 +522,7 @@ void UALSCharacterAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSecon
 
 void UALSCharacterAnimInstance::PlayTransition(const FALSDynamicMontageParams& Parameters)
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
     TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::PlayTransition);
 	PlaySlotAnimationAsDynamicMontage(Parameters.Animation, NAME_Grounded___Slot,
 	                                  Parameters.BlendInTime, Parameters.BlendOutTime, Parameters.PlayRate, 1,
@@ -531,7 +531,7 @@ void UALSCharacterAnimInstance::PlayTransition(const FALSDynamicMontageParams& P
 
 void UALSCharacterAnimInstance::PlayTransitionChecked(const FALSDynamicMontageParams& Parameters)
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::PlayTransitionChecked);
 	if (Stance.Standing() && !Grounded.bShouldMove)
 	{
@@ -541,7 +541,7 @@ void UALSCharacterAnimInstance::PlayTransitionChecked(const FALSDynamicMontagePa
 
 void UALSCharacterAnimInstance::PlayDynamicTransition(float ReTriggerDelay, FALSDynamicMontageParams Parameters)
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::PlayDynamicTransition);
 	if (bCanPlayDynamicTransition)
 	{
@@ -561,7 +561,7 @@ void UALSCharacterAnimInstance::PlayDynamicTransition(float ReTriggerDelay, FALS
 
 bool UALSCharacterAnimInstance::GetShouldOverlayStateUsePRASIK() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetShouldOverlayStateUsePRASIK);
 	switch (OverlayState) {
 	case EALSOverlayState::Default:
@@ -593,7 +593,7 @@ bool UALSCharacterAnimInstance::GetShouldOverlayStateUsePRASIK() const
 
 // bool UALSCharacterAnimInstance::GetCanMoveLFtoMoveLB() const
 // {
-// 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+// 	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 // 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetCanMoveLFtoMoveLB);
 // 	const float CurveValue = GetCurveValue(FName("HipOrientation_Bias"));
 // 	const bool bCurveTrue = UKismetMathLibrary::Abs(CurveValue) < 0.5f;
@@ -605,7 +605,7 @@ bool UALSCharacterAnimInstance::GetShouldOverlayStateUsePRASIK() const
 
 void UALSCharacterAnimInstance::GetStateMachineIndexes()
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_BaseHelpers_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_BaseHelpers_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UCharacterAnimInstance::GetStateMachineIndexes);
 	if(bHasInitializedIndexes){return;}
 	for(auto& SingleStateMachineData : StateMachineData)
@@ -647,7 +647,7 @@ void UALSCharacterAnimInstance::GetStateMachineIndexes()
 
 bool UALSCharacterAnimInstance::GetStateWeight(const FName& MachineName, const FName& StateName, float& OutWeight) const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_BaseHelpers_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_BaseHelpers_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UCharacterAnimInstance::GetStateWeight);
 	if(!IsValid(this) || !GetWorld() || !GetSkelMeshComponent() || !GetWorld()->IsGameWorld())
 	{
@@ -673,7 +673,7 @@ bool UALSCharacterAnimInstance::GetStateWeight(const FName& MachineName, const F
 bool UALSCharacterAnimInstance::GetAnimTimeRemaining(const FName& MachineName, const FName& StateName,
 	float& OutTime) const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_BaseHelpers_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_BaseHelpers_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UCharacterAnimInstance::GetStateWeight);
 	if(!IsValid(this) || !GetWorld() || !GetSkelMeshComponent() || !GetWorld()->IsGameWorld())
 	{
@@ -718,7 +718,7 @@ bool UALSCharacterAnimInstance::GetAnimTimeRemaining(const FName& MachineName, c
 
 bool UALSCharacterAnimInstance::GetMachineWeight(const FName& MachineName, float& OutWeight) const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_BaseHelpers_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_BaseHelpers_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UCharacterAnimInstance::GetMachineWeight);
 	if(!IsValid(this) || !GetWorld() || !GetSkelMeshComponent() || !GetWorld()->IsGameWorld())
 	{
@@ -736,7 +736,7 @@ bool UALSCharacterAnimInstance::GetMachineWeight(const FName& MachineName, float
 
 bool UALSCharacterAnimInstance::GetCurrentStateTime(const FName& MachineName, float& OutTime) const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_BaseHelpers_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_BaseHelpers_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UCharacterAnimInstance::GetCurrentStateTime);
 	if(!IsValid(this) || !GetWorld() || !GetSkelMeshComponent() || !GetWorld()->IsGameWorld())
 	{
@@ -754,7 +754,7 @@ bool UALSCharacterAnimInstance::GetCurrentStateTime(const FName& MachineName, fl
 
 bool UALSCharacterAnimInstance::GetHipOrientationBiasOverHalf() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetHipOrientationBiasOverHalf);
 	const float CurveValue = GetCurveValue(FName("HipOrientation_Bias"));
 	return UKismetMathLibrary::Abs(CurveValue) > 0.5f;
@@ -762,7 +762,7 @@ bool UALSCharacterAnimInstance::GetHipOrientationBiasOverHalf() const
 
 bool UALSCharacterAnimInstance::GetPreStopToFootUpRule() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetPreStopToFootUpRule);
 	const float CurveValue = GetCurveValue(FName("Feet_Position"));
 	return UKismetMathLibrary::Abs(CurveValue) < 0.5f;
@@ -770,7 +770,7 @@ bool UALSCharacterAnimInstance::GetPreStopToFootUpRule() const
 
 bool UALSCharacterAnimInstance::GetPreStopToFootDownRule() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetPreStopToFootDownRule);
 	const float CurveValue = GetCurveValue(FName("Feet_Position"));
 	return UKismetMathLibrary::Abs(CurveValue) >= 0.5f;
@@ -778,7 +778,7 @@ bool UALSCharacterAnimInstance::GetPreStopToFootDownRule() const
 
 bool UALSCharacterAnimInstance::GetFeetCrossing() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetFeetCrossing);
 	const float CurveValue = GetCurveValue(FName("Feet_Crossing"));
 	return CurveValue != 0.0f;
@@ -786,7 +786,7 @@ bool UALSCharacterAnimInstance::GetFeetCrossing() const
 
 bool UALSCharacterAnimInstance::GetRightFootRule() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetRightFootRule);
 	const float CurveValue = GetCurveValue(FName("Feet_Position"));
 	return CurveValue > 0.0f;
@@ -794,7 +794,7 @@ bool UALSCharacterAnimInstance::GetRightFootRule() const
 
 bool UALSCharacterAnimInstance::GetLeftFootRule() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetLeftFootRule);
 	const float CurveValue = GetCurveValue(FName("Feet_Position"));
 	return CurveValue < 0.0f;
@@ -802,7 +802,7 @@ bool UALSCharacterAnimInstance::GetLeftFootRule() const
 
 bool UALSCharacterAnimInstance::GetHipsRightRule() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetHipsRightRule);
 	const float CurveValue = GetCurveValue(FName("HipOrientation_Bias"));
 	const bool bHips =  UKismetMathLibrary::Abs(CurveValue) > 0.5f;
@@ -813,7 +813,7 @@ bool UALSCharacterAnimInstance::GetHipsRightRule() const
 
 bool UALSCharacterAnimInstance::GetHipsLeftRule() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetHipsLeftRule);
 	const float CurveValue = GetCurveValue(FName("HipOrientation_Bias"));
 	const bool bHip =  UKismetMathLibrary::Abs(CurveValue) < -0.5f;
@@ -824,28 +824,28 @@ bool UALSCharacterAnimInstance::GetHipsLeftRule() const
 
 bool UALSCharacterAnimInstance::GetLookTowardFRule() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetLookTowardFRule);
 	return UKismetMathLibrary::InRange_FloatFloat(SmoothedAimingAngle.X, -1.0f * SmoothedAimingAngleFMax, SmoothedAimingAngleFMax, true, true);
 }
 
 bool UALSCharacterAnimInstance::GetLookTowardRBRule() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetLookTowardRBRule);
 	return UKismetMathLibrary::InRange_FloatFloat(SmoothedAimingAngle.X, SmoothedAimingAngleRBMin, SmoothedAimingAngleRBMax, true, true);
 }
 
 bool UALSCharacterAnimInstance::GetLookTowardLBRule() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetLookTowardLBRule);
 	return UKismetMathLibrary::InRange_FloatFloat(SmoothedAimingAngle.X, -1.0f *SmoothedAimingAngleRBMax, -1.0f * SmoothedAimingAngleRBMin, true, true);
 }
 
 bool UALSCharacterAnimInstance::GetRunningToWalkingRule() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetRunningToWalkingRule);
 	const bool bWalking = Gait.Walking();
 	const float CurveValue = GetCurveValue(FName("W_Gait"));
@@ -855,7 +855,7 @@ bool UALSCharacterAnimInstance::GetRunningToWalkingRule() const
 
 bool UALSCharacterAnimInstance::GetEntryToCrouchingLFRule() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetEntryToCrouchingLFRule);
 	const float CurveValue = GetCurveValue(FName("BasePose_CLF"));
 	return CurveValue >= 0.5f;
@@ -863,7 +863,7 @@ bool UALSCharacterAnimInstance::GetEntryToCrouchingLFRule() const
 
 bool UALSCharacterAnimInstance::GetEntryToStandingRule() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetEntryToStandingRule);
 	const float CurveValue = GetCurveValue(FName("BasePose_CLF"));
 	return CurveValue < 0.5f;
@@ -871,14 +871,14 @@ bool UALSCharacterAnimInstance::GetEntryToStandingRule() const
 
 bool UALSCharacterAnimInstance::GetInterruptTransitionRule() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetInterruptTransitionRule);
 	return (Grounded.bShouldMove || Grounded.bRotateL || Grounded.bRotateR);
 }
 
 bool UALSCharacterAnimInstance::GetEntryToJumpRightFoot() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetEntryToJumpRightFoot);
 	const float CurveValue = GetCurveValue(FName("Feet_Position"));
 	return CurveValue >= 0.0f;
@@ -886,14 +886,14 @@ bool UALSCharacterAnimInstance::GetEntryToJumpRightFoot() const
 
 bool UALSCharacterAnimInstance::GetLandToGroundRule() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetLandToGroundRule);
 	return (MovementState.Grounded() == false) || (Stance.Standing() == false);
 }
 
 bool UALSCharacterAnimInstance::GetMoveLFToMoveLBRule() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetMoveLFToMoveLBRule);
 	const float CurveValue = GetCurveValue(FName("HipOrientation_Bias"));
 	const bool bCurveTrue =  UKismetMathLibrary::Abs(CurveValue) < 0.5f;
@@ -906,7 +906,7 @@ bool UALSCharacterAnimInstance::GetMoveLFToMoveLBRule() const
 
 bool UALSCharacterAnimInstance::GetMoveRBtoMoveRFRule() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetMoveRBtoMoveRFRule);
 	const float CurveValue = GetCurveValue(FName("HipOrientation_Bias"));
 	const bool bCurveTrue =  UKismetMathLibrary::Abs(CurveValue) < 0.5f;
@@ -919,7 +919,7 @@ bool UALSCharacterAnimInstance::GetMoveRBtoMoveRFRule() const
 
 bool UALSCharacterAnimInstance::GetMoveLBtoMoveLFRule() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetMoveLBtoMoveLFRule);
 	const float CurveValue = GetCurveValue(FName("HipOrientation_Bias"));
 	const bool bCurveTrue =  UKismetMathLibrary::Abs(CurveValue) < 0.5f;
@@ -931,7 +931,7 @@ bool UALSCharacterAnimInstance::GetMoveLBtoMoveLFRule() const
 
 bool UALSCharacterAnimInstance::GetLookingLeftAndBackToLookingForwardRule() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetLookingLeftAndBackToLookingForwardRule);
 	const bool bInRange = UKismetMathLibrary::InRange_FloatFloat(SmoothedAimingAngle.X, -1.0f *SmoothedAimingAngleFMax, SmoothedAimingAngleFMax, true, true);
 	float Weight;
@@ -942,7 +942,7 @@ bool UALSCharacterAnimInstance::GetLookingLeftAndBackToLookingForwardRule() cons
 
 bool UALSCharacterAnimInstance::GetLookingRightAndBackToLookingForwardRule() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetLookingRightAndBackToLookingForwardRule);
 	const bool bInRange = UKismetMathLibrary::InRange_FloatFloat(SmoothedAimingAngle.X, -1.0f *SmoothedAimingAngleFMax, SmoothedAimingAngleFMax, true, true);
 	float Weight;
@@ -953,7 +953,7 @@ bool UALSCharacterAnimInstance::GetLookingRightAndBackToLookingForwardRule() con
 
 bool UALSCharacterAnimInstance::GetLookingForwardsToLookingRightBackRule() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetLookingForwardsToLookingRightBackRule);
 	const bool bInRange = UKismetMathLibrary::InRange_FloatFloat(SmoothedAimingAngle.X, SmoothedAimingAngleRBMin, SmoothedAimingAngleRBMax, true, true);
 	float Weight;
@@ -963,7 +963,7 @@ bool UALSCharacterAnimInstance::GetLookingForwardsToLookingRightBackRule() const
 
 bool UALSCharacterAnimInstance::GetLookingForwardsToLookingLeftBackRule() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetLookingForwardsToLookingLeftBackRule);
 	const bool bInRange = UKismetMathLibrary::InRange_FloatFloat(SmoothedAimingAngle.X, -1.0f * SmoothedAimingAngleRBMax, -1.0f * SmoothedAimingAngleRBMin, true, true);
 	float Weight;
@@ -973,7 +973,7 @@ bool UALSCharacterAnimInstance::GetLookingForwardsToLookingLeftBackRule() const
 
 bool UALSCharacterAnimInstance::GetLookingToCameraNoOffsetRule() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetLookingToCameraNoOffsetRule);
 	float Time;
 	return (GetCurrentStateTime(NAME__Machine__Look_Towards_Camera_States, Time)) && Time > 2.0f;
@@ -982,7 +982,7 @@ bool UALSCharacterAnimInstance::GetLookingToCameraNoOffsetRule() const
 
 bool UALSCharacterAnimInstance::GetMovingToStopRule() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetMovingToStopRule);
 	float Weight;
 	const bool bWeight = GetStateWeight(NAME__Machine__N_Locomotion_States, NAME__State__N_Moving, Weight) && Weight == 1.0f;
@@ -991,7 +991,7 @@ bool UALSCharacterAnimInstance::GetMovingToStopRule() const
 
 bool UALSCharacterAnimInstance::GetStopToNotMovingRule() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetStopToNotMovingRule);
 	float Weight;
 	return GetStateWeight(NAME__Machine__N_Locomotion_States, NAME__State__N_Stop, Weight) && Weight == 1.0f;
@@ -999,7 +999,7 @@ bool UALSCharacterAnimInstance::GetStopToNotMovingRule() const
 
 bool UALSCharacterAnimInstance::GetCLFMovingToStopRule() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetCLFMovingToStopRule);
 	float Weight;
 	const bool bWeight = GetStateWeight(NAME__Machine__N_Locomotion_States, NAME__State__CLF_Moving, Weight) && Weight == 1.0f;
@@ -1008,7 +1008,7 @@ bool UALSCharacterAnimInstance::GetCLFMovingToStopRule() const
 
 bool UALSCharacterAnimInstance::GetCLFStopToNotMovingRule() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetCLFStopToNotMovingRule);
 	float Weight;
 	return GetStateWeight(NAME__Machine__N_Locomotion_States, NAME__State__CLF_Stop, Weight) && Weight == 1.0f;
@@ -1016,7 +1016,7 @@ bool UALSCharacterAnimInstance::GetCLFStopToNotMovingRule() const
 
 bool UALSCharacterAnimInstance::GetWalkingToRunningRule() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetWalkingToRunningRule);
 	float Weight;
 	const bool bWeight = GetMachineWeight(NAME__Machine__Main_Grounded_States, Weight) && Weight != 1.0f;
@@ -1025,7 +1025,7 @@ bool UALSCharacterAnimInstance::GetWalkingToRunningRule() const
 
 bool UALSCharacterAnimInstance::GetWalkingToRunRule() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetWalkingToRunRule);
 	float Weight = 0.0f;
 	const bool bWeight = GetMachineWeight(NAME__Machine__Main_Grounded_States, Weight) && Weight == 1.0f;
@@ -1034,7 +1034,7 @@ bool UALSCharacterAnimInstance::GetWalkingToRunRule() const
 
 bool UALSCharacterAnimInstance::GetWalkRunToRunningRule() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetWalkRunToRunningRule);
 	float Weight = 0.0f;
 	return  GetAnimTimeRemaining(NAME__Machine__N_Locomotion_Detail, NAME__State__N_Walk_Run, Weight) && Weight == 0.0f;
@@ -1043,7 +1043,7 @@ bool UALSCharacterAnimInstance::GetWalkRunToRunningRule() const
 
 bool UALSCharacterAnimInstance::GetFirstPivotToSecondPivotRule() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetFirstPivotToSecondPivotRule);
 	float Weight = 0.0f;
 	const bool bWeight = GetCurrentStateTime(NAME__Machine__N_Locomotion_States, Weight) && Weight > 0.1f;
@@ -1052,7 +1052,7 @@ bool UALSCharacterAnimInstance::GetFirstPivotToSecondPivotRule() const
 
 bool UALSCharacterAnimInstance::GetPivotToNRunningRule() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetPivotToNRunningRule);
 	float Weight = 0.0f;
 	return GetAnimTimeRemaining(NAME__Machine__N_Locomotion_Detail, NAME__State__First_Pivot, Weight) && Weight == 0.0f;
@@ -1060,7 +1060,7 @@ bool UALSCharacterAnimInstance::GetPivotToNRunningRule() const
 
 bool UALSCharacterAnimInstance::GetSecondPivotToNRunningRule() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetSecondPivotToNRunningRule);
 	float Weight = 0.0f;
 	return GetAnimTimeRemaining(NAME__Machine__N_Locomotion_Detail, NAME__State__Second_Pivot, Weight) && Weight == 0.0f;
@@ -1068,7 +1068,7 @@ bool UALSCharacterAnimInstance::GetSecondPivotToNRunningRule() const
 
 bool UALSCharacterAnimInstance::GetSecondPivotToFirstPivotRule() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetSecondPivotToFirstPivotRule);
 	float Weight = 0.0f;
 	const bool bWeight = GetCurrentStateTime(NAME__Machine__N_Locomotion_States, Weight) && Weight > 0.1f;
@@ -1077,7 +1077,7 @@ bool UALSCharacterAnimInstance::GetSecondPivotToFirstPivotRule() const
 
 bool UALSCharacterAnimInstance::GetRunToNRunStartRule() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetRunToNRunStartRule);
 	float Weight = 0.0f;
 	return GetMachineWeight(NAME__Machine__N_Locomotion_States, Weight) && Weight != 1.0f;
@@ -1085,7 +1085,7 @@ bool UALSCharacterAnimInstance::GetRunToNRunStartRule() const
 
 bool UALSCharacterAnimInstance::GetRunToNWalkRule() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetRunToNWalkRule);
 	float Weight = 0.0f;
 	return GetMachineWeight(NAME__Machine__N_Locomotion_States, Weight) && Weight == 1.0f;
@@ -1093,7 +1093,7 @@ bool UALSCharacterAnimInstance::GetRunToNWalkRule() const
 
 bool UALSCharacterAnimInstance::GetRunStartToNRunning() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetRunStartToNRunning);
 	float Weight;
 	return GetAnimTimeRemaining(NAME__Machine__N_Locomotion_Detail, NAME__State__N_Run_Start, Weight) && Weight == 0.0f;
@@ -1101,7 +1101,7 @@ bool UALSCharacterAnimInstance::GetRunStartToNRunning() const
 
 bool UALSCharacterAnimInstance::GetJumpLeftFootToJumpLoopRule() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetJumpLeftFootToJumpLoopRule);
 	float Weight;
 	return GetAnimTimeRemaining(NAME__Machine__Main_Movement_States, NAME__State__Jump_Left_Foot, Weight) && Weight == 0.0f;
@@ -1109,7 +1109,7 @@ bool UALSCharacterAnimInstance::GetJumpLeftFootToJumpLoopRule() const
 
 bool UALSCharacterAnimInstance::GetJumpRightFootToJumpLoopRule() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetJumpRightFootToJumpLoopRule);
 	float Weight;
 	return GetAnimTimeRemaining(NAME__Machine__Main_Movement_States, NAME__State__Jump_Right_Foot, Weight) && Weight == 0.0f;
@@ -1117,21 +1117,21 @@ bool UALSCharacterAnimInstance::GetJumpRightFootToJumpLoopRule() const
 
 bool UALSCharacterAnimInstance::GetLandToGroundedRule() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetLandToGroundedRule);
 	return (Stance.Standing() == false) || (MovementState.Grounded() == false);
 }
 
 bool UALSCharacterAnimInstance::GetLandToLandMovementRule() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetLandToLandMovementRule);
 	return (Grounded.bRotateL) || (Grounded.bRotateR) || (CharacterInformation.bHasMovementInput) || (CharacterInformation.Speed > 650.0f);
 }
 
 bool UALSCharacterAnimInstance::GetLandToGroundedOtherRule() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetLandToGroundedOtherRule);
 	float Weight;
 	return GetAnimTimeRemaining(NAME__Machine__Main_Movement_States, NAME__State__Land, Weight) && Weight == 0.0f;
@@ -1139,21 +1139,21 @@ bool UALSCharacterAnimInstance::GetLandToGroundedOtherRule() const
 
 bool UALSCharacterAnimInstance::GetLandMovementToGroundedRule() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetLandMovementToGroundedRule);
 	return (Stance.Standing() == false) || (MovementState.Grounded() == false);
 }
 
 bool UALSCharacterAnimInstance::GetLandToLandMovement() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetLandToLandMovement);
 	return (Grounded.bRotateL) || (Grounded.bRotateR) || (CharacterInformation.bHasMovementInput);
 }
 
 bool UALSCharacterAnimInstance::GetRifleReadyToRifleRelaxedRule() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetRifleReadyToRifleRelaxedRule);
 	const float CurveValue = GetCurveValue(FName("Enable_Transition"));
 	const bool bCurveTrue =  CurveValue >= 0.99;
@@ -1164,7 +1164,7 @@ bool UALSCharacterAnimInstance::GetRifleReadyToRifleRelaxedRule() const
 
 bool UALSCharacterAnimInstance::GetRifleReadyToRifleRelaxedSecondRule() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetRifleReadyToRifleRelaxedSecondRule);
 	float Weight;
 	const bool bWeight = GetCurrentStateTime(NAME__Machine__Rifle_States, Weight) && Weight > 3.0f;
@@ -1173,14 +1173,14 @@ bool UALSCharacterAnimInstance::GetRifleReadyToRifleRelaxedSecondRule() const
 
 bool UALSCharacterAnimInstance::GetInAirOrSprintingRule() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetInAirOtSprintingRule);
 	return MovementState.InAir() || Gait.Sprinting();
 }
 
 bool UALSCharacterAnimInstance::GetPistolReadyToPistolRelaxedRule() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetPistolReadyToPistolRelaxedRule);
 	const float CurveValue = GetCurveValue(FName("Enable_Transition"));
 	const bool bCurveTrue =  CurveValue >= 0.99f;
@@ -1191,7 +1191,7 @@ bool UALSCharacterAnimInstance::GetPistolReadyToPistolRelaxedRule() const
 
 bool UALSCharacterAnimInstance::GetPistolReadyToPistolRelaxedSecondRule() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetPistolReadyToPistolRelaxedSecondRule);
 	float Weight;
 	const bool bWeight = GetCurrentStateTime(NAME__Machine__Pistol_1H_States, Weight) && Weight > 3.0f;
@@ -1200,7 +1200,7 @@ bool UALSCharacterAnimInstance::GetPistolReadyToPistolRelaxedSecondRule() const
 
 bool UALSCharacterAnimInstance::GetPistol2HReadyToPistolRelaxedRule() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetPistol2HReadyToPistolRelaxedRule);
 	const float CurveValue = GetCurveValue(FName("Enable_Transition"));
 	const bool bCurveTrue =  CurveValue >= 0.99f;
@@ -1211,7 +1211,7 @@ bool UALSCharacterAnimInstance::GetPistol2HReadyToPistolRelaxedRule() const
 
 bool UALSCharacterAnimInstance::GetPistol2HReadyToPistolRelaxedSecondRule() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetPistolReadyToPistolRelaxedSecondRule);
 	float Weight;
 	const bool bWeight = GetCurrentStateTime(NAME__Machine__Pistol_2H_States, Weight) && Weight > 3.0f;
@@ -1220,7 +1220,7 @@ bool UALSCharacterAnimInstance::GetPistol2HReadyToPistolRelaxedSecondRule() cons
 
 bool UALSCharacterAnimInstance::GetBowReadyToBowRelaxedRule() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetBowReadyToBowRelaxedRule);
 	const float CurveValue = GetCurveValue(FName("RotationAmount"));
 	const bool bCurveTrue =  CurveValue <= 0.01f;
@@ -1231,7 +1231,7 @@ bool UALSCharacterAnimInstance::GetBowReadyToBowRelaxedRule() const
 
 bool UALSCharacterAnimInstance::GetBowReadyToBowRelaxedSecondRule() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetBowReadyToBowRelaxedSecondRule);
 	float Weight;
 	const bool bWeight = GetCurrentStateTime(NAME__Machine__Bow_States, Weight) && Weight > 3.0f;
@@ -1241,14 +1241,14 @@ bool UALSCharacterAnimInstance::GetBowReadyToBowRelaxedSecondRule() const
 
 float UALSCharacterAnimInstance::GetAirFallSpeedABS() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetAirFallSpeedABS);
 	return UKismetMathLibrary::Abs(InAir.FallSpeed);
 }
 
 bool UALSCharacterAnimInstance::ShouldMoveCheck() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::ShouldMoveCheck);
 	return (CharacterInformation.bIsMoving && CharacterInformation.bHasMovementInput) ||
 		CharacterInformation.Speed > 150.0f;
@@ -1256,7 +1256,7 @@ bool UALSCharacterAnimInstance::ShouldMoveCheck() const
 
 bool UALSCharacterAnimInstance::CanRotateInPlace() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::CanRotateInPlace);
 	return RotationMode.Aiming() ||
 		CharacterInformation.ViewMode == EALSViewMode::FirstPerson;
@@ -1264,7 +1264,7 @@ bool UALSCharacterAnimInstance::CanRotateInPlace() const
 
 bool UALSCharacterAnimInstance::CanTurnInPlace() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::CanTurnInPlace);
 	return RotationMode.LookingDirection() &&
 		CharacterInformation.ViewMode == EALSViewMode::ThirdPerson &&
@@ -1273,35 +1273,35 @@ bool UALSCharacterAnimInstance::CanTurnInPlace() const
 
 bool UALSCharacterAnimInstance::CanDynamicTransition() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::CanDynamicTransition);
 	return GetCurveValue(NAME_Enable_Transition) >= 0.99f;
 }
 
 void UALSCharacterAnimInstance::PlayDynamicTransitionDelay()
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::PlayDynamicTransitionDelay);
 	bCanPlayDynamicTransition = true;
 }
 
 void UALSCharacterAnimInstance::OnJumpedDelay()
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::OnJumpedDelay);
 	InAir.bJumped = false;
 }
 
 void UALSCharacterAnimInstance::OnPivotDelay()
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::OnPivotDelay);
 	Grounded.bPivot = false;
 }
 
 void UALSCharacterAnimInstance::UpdateAimingValues(float DeltaSeconds)
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::UpdateAimingValues);
 	// Interp the Aiming Rotation value to achieve smooth aiming rotation changes.
 	// Interpolating the rotation before calculating the angle ensures the value is not affected by changes
@@ -1360,7 +1360,7 @@ void UALSCharacterAnimInstance::UpdateAimingValues(float DeltaSeconds)
 
 void UALSCharacterAnimInstance::UpdateLayerValues()
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::UpdateLayerValues);
 	// Get the Aim Offset weight by getting the opposite of the Aim Offset Mask.
 	LayerBlendingValues.EnableAimOffset = FMath::Lerp(1.0f, 0.0f, GetCurveValue(NAME_Mask_AimOffset));
@@ -1390,7 +1390,7 @@ void UALSCharacterAnimInstance::UpdateLayerValues()
 
 void UALSCharacterAnimInstance::UpdateFootIK(float DeltaSeconds)
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::UpdateFootIK);
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("ALS UpdateFootIK"), STAT_ALS_UpdateFootIK, STATGROUP_ALS)
 	FVector FootOffsetLTarget = FVector::ZeroVector;
@@ -1427,7 +1427,7 @@ void UALSCharacterAnimInstance::SetFootLocking(float DeltaSeconds, FName EnableF
                                                FName IKFootBone, float& CurFootLockAlpha, bool& UseFootLockCurve,
                                                FVector& CurFootLockLoc, FRotator& CurFootLockRot) const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::SetFootLocking);
 	if (GetCurveValue(EnableFootIKCurve) <= 0.0f)
 	{
@@ -1475,7 +1475,7 @@ void UALSCharacterAnimInstance::SetFootLocking(float DeltaSeconds, FName EnableF
 
 void UALSCharacterAnimInstance::SetFootLockOffsets(float DeltaSeconds, FVector& LocalLoc, FRotator& LocalRot) const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::SetFootLockOffsets);
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("ALS SetFootLockOffsets"), STAT_ALS_SetFootLockOffsets, STATGROUP_ALS)
 
@@ -1507,7 +1507,7 @@ void UALSCharacterAnimInstance::SetFootLockOffsets(float DeltaSeconds, FVector& 
 void UALSCharacterAnimInstance::SetPelvisIKOffset(float DeltaSeconds, FVector FootOffsetLTarget,
                                                   FVector FootOffsetRTarget)
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::SetPelvisIKOffset);
 	// Calculate the Pelvis Alpha by finding the average Foot IK weight. If the alpha is 0, clear the offset.
 	FootIKValues.PelvisAlpha =
@@ -1532,7 +1532,7 @@ void UALSCharacterAnimInstance::SetPelvisIKOffset(float DeltaSeconds, FVector Fo
 
 void UALSCharacterAnimInstance::ResetIKOffsets(float DeltaSeconds)
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::ResetIKOffsets);
 	// Interp Foot IK offsets back to 0
 	FootIKValues.FootOffset_L_Location = FMath::VInterpTo(FootIKValues.FootOffset_L_Location,
@@ -1549,7 +1549,7 @@ void UALSCharacterAnimInstance::SetFootOffsets(float DeltaSeconds, FName EnableF
                                                FName RootBone, FVector& CurLocationTarget, FVector& CurLocationOffset,
                                                FRotator& CurRotationOffset) const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::SetFootOffsets);
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("ALS SetFootOffsets"), STAT_ALS_SetFootOffsets, STATGROUP_ALS)
 
@@ -1624,7 +1624,7 @@ void UALSCharacterAnimInstance::SetFootOffsets(float DeltaSeconds, FName EnableF
 
 void UALSCharacterAnimInstance::RotateInPlaceCheck()
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::RotateInPlaceCheck);
 	// Step 1: Check if the character should rotate left or right by checking if the Aiming Angle exceeds the threshold.
 	Grounded.bRotateL = AimingValues.AimingAngle.X < RotateInPlace.RotateMinThreshold;
@@ -1643,7 +1643,7 @@ void UALSCharacterAnimInstance::RotateInPlaceCheck()
 
 void UALSCharacterAnimInstance::TurnInPlaceCheck(float DeltaSeconds)
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::TurnInPlaceCheck);
 	// Step 1: Check if Aiming angle is outside of the Turn Check Min Angle, and if the Aim Yaw Rate is below the Aim Yaw Rate Limit.
 	// If so, begin counting the Elapsed Delay Time. If not, reset the Elapsed Delay Time.
@@ -1675,7 +1675,7 @@ void UALSCharacterAnimInstance::TurnInPlaceCheck(float DeltaSeconds)
 
 void UALSCharacterAnimInstance::DynamicTransitionCheck()
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::DynamicTransitionCheck);
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("ALS DynamicTransitionCheck"), STAT_ALS_DynamicTransitionCheck, STATGROUP_ALS);
 
@@ -1715,7 +1715,7 @@ void UALSCharacterAnimInstance::DynamicTransitionCheck()
 
 void UALSCharacterAnimInstance::UpdateMovementValues(float DeltaSeconds)
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::UpdateMovementValues);
 	// Interp and set the Velocity Blend.
 	const FALSVelocityBlend& TargetBlend = CalculateVelocityBlend();
@@ -1747,7 +1747,7 @@ void UALSCharacterAnimInstance::UpdateMovementValues(float DeltaSeconds)
 
 void UALSCharacterAnimInstance::UpdateRotationValues()
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::UpdateRotationValues);
 	// Set the Movement Direction
 	MovementDirection = CalculateMovementDirection();
@@ -1767,7 +1767,7 @@ void UALSCharacterAnimInstance::UpdateRotationValues()
 
 void UALSCharacterAnimInstance::UpdateInAirValues(float DeltaSeconds)
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::UpdateInAirValues);
 	// Update the fall speed. Setting this value only while in the air allows you to use it within the AnimGraph for the landing strength.
 	// If not, the Z velocity would return to 0 on landing.
@@ -1784,7 +1784,7 @@ void UALSCharacterAnimInstance::UpdateInAirValues(float DeltaSeconds)
 
 void UALSCharacterAnimInstance::UpdateRagdollValues()
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::UpdateRagdollValues);
 	// Scale the Flail Rate by the velocity length. The faster the ragdoll moves, the faster the character will flail.
 	const float VelocityLength = GetOwningComponent()->GetPhysicsLinearVelocity(NAME__ALSCharacterAnimInstance__root).Size();
@@ -1794,14 +1794,14 @@ void UALSCharacterAnimInstance::UpdateRagdollValues()
 float UALSCharacterAnimInstance::GetAnimCurveClamped(const FName& Name, float Bias, float ClampMin,
                                                      float ClampMax) const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::GetAnimCurveClamped);
 	return FMath::Clamp(GetCurveValue(Name) + Bias, ClampMin, ClampMax);
 }
 
 FALSVelocityBlend UALSCharacterAnimInstance::CalculateVelocityBlend() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::CalculateVelocityBlend);
 	// Calculate the Velocity Blend. This value represents the velocity amount of the actor in each direction (normalized so that
 	// diagonals equal .5 for each direction), and is used in a BlendMulti node to produce better
@@ -1821,7 +1821,7 @@ FALSVelocityBlend UALSCharacterAnimInstance::CalculateVelocityBlend() const
 
 FVector UALSCharacterAnimInstance::CalculateRelativeAccelerationAmount() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::CalculateRelativeAccelerationAmount);
 	// Calculate the Relative Acceleration Amount. This value represents the current amount of acceleration / deceleration
 	// relative to the actor rotation. It is normalized to a range of -1 to 1 so that -1 equals the Max Braking Deceleration,
@@ -1847,7 +1847,7 @@ FVector UALSCharacterAnimInstance::CalculateRelativeAccelerationAmount() const
 
 float UALSCharacterAnimInstance::CalculateStrideBlend() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::CalculateStrideBlend);
 	// Calculate the Stride Blend. This value is used within the blendspaces to scale the stride (distance feet travel)
 	// so that the character can walk or run at different movement speeds.
@@ -1865,7 +1865,7 @@ float UALSCharacterAnimInstance::CalculateStrideBlend() const
 
 float UALSCharacterAnimInstance::CalculateWalkRunBlend() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::CalculateWalkRunBlend);
 	// Calculate the Walk Run Blend. This value is used within the Blendspaces to blend between walking and running.
 	return Gait.Walking() ? 0.0f : 1.0;
@@ -1873,7 +1873,7 @@ float UALSCharacterAnimInstance::CalculateWalkRunBlend() const
 
 float UALSCharacterAnimInstance::CalculateStandingPlayRate() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::CalculateStandingPlayRate);
 	// Calculate the Play Rate by dividing the Character's speed by the Animated Speed for each gait.
 	// The lerps are determined by the "W_Gait" anim curve that exists on every locomotion cycle so
@@ -1892,7 +1892,7 @@ float UALSCharacterAnimInstance::CalculateStandingPlayRate() const
 
 float UALSCharacterAnimInstance::CalculateDiagonalScaleAmount() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::CalculateDiagonalScaleAmount);
 	// Calculate the Diagonal Scale Amount. This value is used to scale the Foot IK Root bone to make the Foot IK bones
 	// cover more distance on the diagonal blends. Without scaling, the feet would not move far enough on the diagonal
@@ -1906,7 +1906,7 @@ float UALSCharacterAnimInstance::CalculateDiagonalScaleAmount() const
 
 float UALSCharacterAnimInstance::CalculateCrouchingPlayRate() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::CalculateCrouchingPlayRate);
 	// Calculate the Crouching Play Rate by dividing the Character's speed by the Animated Speed.
 	// This value needs to be separate from the standing play rate to improve the blend from crouch to stand while in motion.
@@ -1918,7 +1918,7 @@ float UALSCharacterAnimInstance::CalculateCrouchingPlayRate() const
 
 float UALSCharacterAnimInstance::CalculateLandPrediction() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::CalculateLandPrediction);
 	// Calculate the land prediction weight by tracing in the velocity direction to find a walkable surface the character
 	// is falling toward, and getting the 'Time' (range of 0-1, 1 being maximum, 0 being about to land) till impact.
@@ -1974,7 +1974,7 @@ float UALSCharacterAnimInstance::CalculateLandPrediction() const
 
 FALSLeanAmount UALSCharacterAnimInstance::CalculateAirLeanAmount() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::CalculateAirLeanAmount);
 	// Use the relative Velocity direction and amount to determine how much the character should lean while in air.
 	// The Lean In Air curve gets the Fall Speed and is used as a multiplier to smoothly reverse the leaning direction
@@ -1994,7 +1994,7 @@ FALSLeanAmount UALSCharacterAnimInstance::CalculateAirLeanAmount() const
 
 EALSMovementDirection UALSCharacterAnimInstance::CalculateMovementDirection() const
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::CalculateMovementDirection);
 	// Calculate the Movement Direction. This value represents the direction the character is moving relative to the camera
 	// during the Looking Direction / Aiming rotation modes, and is used in the Cycle Blending Anim Layers to blend to the
@@ -2012,7 +2012,7 @@ EALSMovementDirection UALSCharacterAnimInstance::CalculateMovementDirection() co
 void UALSCharacterAnimInstance::TurnInPlace(FRotator TargetRotation, float PlayRateScale, float StartTime,
                                             bool OverrideCurrent)
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::TurnInPlace);
 	// Step 1: Set Turn Angle
 	FRotator Delta = TargetRotation - CharacterInformation.CharacterActorRotation;
@@ -2073,7 +2073,7 @@ void UALSCharacterAnimInstance::TurnInPlace(FRotator TargetRotation, float PlayR
 
 void UALSCharacterAnimInstance::OnJumped()
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::OnJumped);
 	InAir.bJumped = true;
 	InAir.JumpPlayRate = FMath::GetMappedRangeValueClamped<float, float>({0.0f, 600.0f}, {1.2f, 1.5f}, CharacterInformation.Speed);
@@ -2084,7 +2084,7 @@ void UALSCharacterAnimInstance::OnJumped()
 
 void UALSCharacterAnimInstance::OnPivot()
 {
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::OnPivot);
 	Grounded.bPivot = CharacterInformation.Speed < Config.TriggerPivotSpeedLimit;
 	GetWorld()->GetTimerManager().SetTimer(OnPivotTimer, this,
@@ -2093,14 +2093,14 @@ void UALSCharacterAnimInstance::OnPivot()
 
 // void UALSCharacterAnimInstance::SetFiringWeapon(const bool bValue)
 // {
-// 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+// 	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 // 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::SetFiringWeapon);
 // 	bFiringWeapon = bValue;
 // }
 //
 // void UALSCharacterAnimInstance::SetRecoilTransform(const FTransform& Transform)
 // {
-// 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+// 	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 // 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::SetRecoilTransform);
 // 	RecoilTransform.SetLocation(Transform.GetLocation());
 // 	RecoilTransform.SetRotation(Transform.GetRotation());
@@ -2108,21 +2108,21 @@ void UALSCharacterAnimInstance::OnPivot()
 //
 // void UALSCharacterAnimInstance::SetPivotPoint(const FTransform& Transform)
 // {
-// 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+// 	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 // 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::SetPivotPoint);
 // 	PivotPoint = Transform;
 // }
 //
 // void UALSCharacterAnimInstance::DisableFootIK(const float DelayTime)
 // {
-// 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+// 	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 // 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::DisableFootIK);
 // 	OnDisableFootIK(DelayTime);
 // }
 //
 // void UALSCharacterAnimInstance::SetInjured(const EBodyPartName BodyPartName, const float InjuredAmount)
 // {
-// 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Animations);
+// 	SCOPE_CYCLE_COUNTER(STAT_ALS_Animations);
 // 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterAnimInstance::SetInjured);
 // 	InjuredBodyPart = BodyPartName;
 // 	InjuredAlpha = InjuredAmount;

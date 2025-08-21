@@ -21,8 +21,8 @@ const FName NAME_MantleTimeline(TEXT("MantleTimeline"));
 
 FName UALSMantleComponent::NAME_IgnoreOnlyPawn(TEXT("IgnoreOnlyPawn"));
 
-DECLARE_CYCLE_STAT(TEXT("ALS Mantle Component (All Functions)"), STATGROUP_ALS_Mantle_Component, STATGROUP_ALS);
-DECLARE_CYCLE_STAT(TEXT("ALS Mantle Component Tick"), STATGROUP_ALS_Mantle_Component_Tick, STATGROUP_ALS);
+DECLARE_CYCLE_STAT(TEXT("ALS Mantle Component (All Functions)"), STAT_ALS_Mantle_Component, STATGROUP_ALS);
+DECLARE_CYCLE_STAT(TEXT("ALS Mantle Component Tick"), STAT_ALS_Mantle_Component_Tick, STATGROUP_ALS);
 
 
 UALSMantleComponent::UALSMantleComponent()
@@ -36,7 +36,7 @@ UALSMantleComponent::UALSMantleComponent()
 void UALSMantleComponent::BeginPlay()
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSMantleComponent::BeginPlay);
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Mantle_Component);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Mantle_Component);
 
 	Super::BeginPlay();
 
@@ -71,8 +71,8 @@ void UALSMantleComponent::TickComponent(float DeltaTime, ELevelTick TickType,
                                         FActorComponentTickFunction* ThisTickFunction)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSMantleComponent::TickComponent);
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Mantle_Component);
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Mantle_Component_Tick);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Mantle_Component);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Mantle_Component_Tick);
 
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
@@ -90,7 +90,7 @@ void UALSMantleComponent::MantleStart(float MantleHeight, const FALSComponentAnd
                                       EALSMantleType MantleType)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSMantleComponent::MantleStart);
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Mantle_Component);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Mantle_Component);
 
 	if (OwnerCharacter == nullptr || !IsValid(MantleLedgeWS.Component) || !IsValid(MantleTimeline))
 	{
@@ -176,7 +176,7 @@ void UALSMantleComponent::MantleStart(float MantleHeight, const FALSComponentAnd
 bool UALSMantleComponent::MantleCheck(const FALSMantleTraceSettings& TraceSettings, EDrawDebugTrace::Type DebugType)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSMantleComponent::MantleCheck);
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Mantle_Component);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Mantle_Component);
 
 	if (!OwnerCharacter)
 	{
@@ -356,7 +356,7 @@ void UALSMantleComponent::Multicast_MantleStart_Implementation(float MantleHeigh
 void UALSMantleComponent::MantleUpdate(float BlendIn)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSMantleComponent::MantleUpdate);
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Mantle_Component);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Mantle_Component);
 
 	if (!OwnerCharacter)
 	{
@@ -425,7 +425,7 @@ void UALSMantleComponent::MantleUpdate(float BlendIn)
 void UALSMantleComponent::MantleEnd()
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSMantleComponent::MantleEnd);
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Mantle_Component);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Mantle_Component);
 
 	// Set the Character Movement Mode to Walking
 	if (OwnerCharacter)
@@ -450,7 +450,7 @@ void UALSMantleComponent::MantleEnd()
 void UALSMantleComponent::OnOwnerJumpInput()
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSMantleComponent::OnOwnerJumpInput);
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Mantle_Component);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Mantle_Component);
 
 	// Check if character is able to do one of the special mantling
 
@@ -473,7 +473,7 @@ void UALSMantleComponent::OnOwnerJumpInput()
 void UALSMantleComponent::OnOwnerRagdollStateChanged(bool bRagdollState)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSMantleComponent::OnOwnerRagdollStateChanged);
-	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_Mantle_Component);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Mantle_Component);
 
 	// If owner is going into ragdoll state, stop mantling immediately
 	if (bRagdollState)
