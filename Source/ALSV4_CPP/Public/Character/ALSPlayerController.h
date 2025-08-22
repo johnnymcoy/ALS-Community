@@ -6,6 +6,7 @@
 #include "CoreMinimal.h"
 #include "InputActionValue.h"
 #include "Character/PlayerControllerBase.h"
+#include "Characters/InteractionPlayerController.h"
 #include "ALSPlayerController.generated.h"
 
 class AALSBaseCharacter;
@@ -15,7 +16,7 @@ class UInputMappingContext;
  * Player controller class
  */
 UCLASS(Blueprintable, BlueprintType)
-class ALSV4_CPP_API AALSPlayerController : public APlayerControllerBase
+class ALSV4_CPP_API AALSPlayerController : public AInteractionPlayerController
 {
 	GENERATED_BODY()
 
@@ -33,21 +34,17 @@ protected:
 
 	void SetupCamera();
 
+	//@ TODO Remove These 
 	virtual void ForwardMovementAction(const FInputActionValue& Value) override;
-
 	virtual void RightMovementAction(const FInputActionValue& Value) override;
-
 	virtual void CameraUpAction(const FInputActionValue& Value) override;
-
 	virtual void CameraRightAction(const FInputActionValue& Value) override;
-
 	virtual void JumpAction(const FInputActionValue& Value) override;
+	virtual void AimAction(const FInputActionValue& Value) override;
 
 	UFUNCTION()
 	void SprintAction(const FInputActionValue& Value);
 	
-	UFUNCTION()
-	virtual void AimAction(const FInputActionValue& Value);
 
 	UFUNCTION()
 	void CameraTapAction(const FInputActionValue& Value);

@@ -47,6 +47,7 @@ public:
 	{
 		return MyCharacterMovementComponent;
 	}
+	
 	virtual FVector GetLeftHandGoal() const override;
 	virtual FVector GetRightHandGoal() const override;
 	virtual EALSOverlayState GetCurrentOverlayState() const override {return OverlayState;};
@@ -64,9 +65,7 @@ public:
 	UPROPERTY(EditAnywhere, Category="Debug|Gravity")
 	float GravityMultiplier = 9.8f;
 	
-	virtual void Ragdoll() override;
-	virtual void RagdollStop() override;
-	virtual void RagdollFrozen(const bool bFrozen) override;
+	
 
 	virtual void Tick(float DeltaTime) override;
 
@@ -403,6 +402,13 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "ALS|Ragdoll System")
 	void SetActorLocationDuringRagdoll(float DeltaTime);
 
+	virtual void OptimizationLevelChanged(const EOptimizationLevel Level) override;
+	virtual void OptimizationSignificanceChanged(const float Significance) override;
+
+	virtual void Ragdoll() override;
+	virtual void RagdollStop() override;
+	virtual void RagdollFrozen(const bool bFrozen) override;
+
 	/** State Changes */
 
 	virtual void OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode = 0) override;
@@ -516,14 +522,8 @@ protected:
 	bool bSetEssentialValues = true;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "ALS|Debug|Anim")
 	bool bUpdateGroundedRotation = true;
-
-	UFUNCTION(BlueprintCallable, Category="ALS|Optimization")
-	void RegisterComponentForBudget() const;
-	UFUNCTION(BlueprintCallable, Category="ALS|Optimization")
-	void UnregisterComponentFromBudget() const;
-	UFUNCTION(BlueprintCallable, BlueprintPure=false, Category="ALS|Optimization")
-	void SetSignificanceValue(const float Value, const bool bNeverSkip = false, const bool bTickEvenIfNotRendered = false, const bool bAllowReducedWork = true, const bool bForceInterpolate = false) const;
-
+	
+	
 	void HandleNonMovingRotation(float DeltaTime);
 
 	FALSAnimValues AnimValues;

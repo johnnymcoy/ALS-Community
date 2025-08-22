@@ -34,7 +34,7 @@ void UALSDebugComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSDebugComponent::TickComponent);
 	SCOPE_CYCLE_COUNTER(STAT_ALS_Debug_Component);
 	SCOPE_CYCLE_COUNTER(STAT_ALS_Debug_Component_Tick);
-
+	if(IsActive() == false){return;}
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 #if !UE_BUILD_SHIPPING

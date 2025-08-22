@@ -3,9 +3,6 @@
 
 
 #include "Character/ALSBaseCharacter.h"
-
-#include "IAnimationBudgetAllocator.h"
-#include "SkeletalMeshComponentBudgeted.h"
 #include "Character/Animation/ALSCharacterAnimInstance.h"
 #include "Character/Animation/ALSPlayerCameraBehavior.h"
 #include "Library/ALSMathLibrary.h"
@@ -17,6 +14,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "NavAreas/NavArea_Obstacle.h"
 #include "TimerManager.h"
+#include "Data/GameOptimizationData.h"
 #include "Interfaces/ALSAnimInterface.h"
 #include "Net/UnrealNetwork.h"
 
@@ -43,14 +41,13 @@ DECLARE_CYCLE_STAT(TEXT("ALS (All Functions)"), STATGROUP_ALS_All, STATGROUP_ALS
 
 AALSBaseCharacter::AALSBaseCharacter(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer
-		.SetDefaultSubobjectClass<UALSCharacterMovementComponent>(CharacterMovementComponentName)
-		.SetDefaultSubobjectClass<USkeletalMeshComponentBudgeted>(ACharacter::MeshComponentName))
+		.SetDefaultSubobjectClass<UALSCharacterMovementComponent>(CharacterMovementComponentName))
 {
 	PrimaryActorTick.bCanEverTick = true;
 	bUseControllerRotationYaw = false;
 	bReplicates = true;
 	SetReplicatingMovement(true);
-	
+
 	SetupCapsuleComponent();	
 	SetupMeshComponent();
 	UDataTable* MovementDT =  UBaseHelpersBPLib::GetDefaultDataTable("/ALSV4_CPP/AdvancedLocomotionV4/Data/DataTables/MovementModelTable");
@@ -168,7 +165,6 @@ void AALSBaseCharacter::BeginPlay()
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::BeginPlay);
 	SCOPE_CYCLE_COUNTER(STAT_ALS_Base_Character);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
-
 	Super::BeginPlay();
 	//@ TEST Optimizations 
 	if(GetMesh() != nullptr && GetMesh()->GetAnimInstance() != nullptr)
@@ -1152,6 +1148,39 @@ void AALSBaseCharacter::SetActorLocationDuringRagdoll(float DeltaTime)
 	// TargetRotation = SmoothedRotation;
 }
 
+void AALSBaseCharacter::OptimizationLevelChanged(const EOptimizationLevel Level)
+{
+	Super::OptimizationLevelChanged(Level);
+	//@TODO Turn off Ground Calculations, Rotation Calculations etc.
+	switch(Level)
+	{
+	case EOptimizationLevel::None:
+		SetActorTickInterval(0.0f);
+		break;
+	case EOptimizationLevel::FirstWave:
+		SetActorTickInterval(0.0f);
+		break;
+	case EOptimizationLevel::SecondWave:
+		SetActorTickInterval(0.0f);
+		break;
+	case EOptimizationLevel::ThirdWave:
+		SetActorTickInterval(0.0f);
+		break;
+	case EOptimizationLevel::FourthWave:
+		SetActorTickInterval(0.0f);
+		break;
+	case EOptimizationLevel::Max:
+		SetActorTickInterval(0.0f);
+		break;
+	}
+}
+
+void AALSBaseCharacter::OptimizationSignificanceChanged(const float Significance)
+{
+	Super::OptimizationSignificanceChanged(Significance);
+	
+}
+
 void AALSBaseCharacter::OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::OnMovementModeChanged);
@@ -1648,44 +1677,6 @@ void AALSBaseCharacter::UpdateGroundedRotation(float DeltaTime)
 	// Other actions are ignored...
 }
 
-void AALSBaseCharacter::RegisterComponentForBudget() const
-{
-	if(GetMesh() == nullptr){return;}
-	USkeletalMeshComponentBudgeted* MeshBudgeted = Cast<USkeletalMeshComponentBudgeted>(GetMesh());
-	if(MeshBudgeted == nullptr){return;}
-	IAnimationBudgetAllocator* Allocator = IAnimationBudgetAllocator::Get(GetWorld());
-	if(Allocator)
-	{
-		Allocator->RegisterComponent(MeshBudgeted);
-	}
-}
-
-void AALSBaseCharacter::UnregisterComponentFromBudget() const
-{
-	if(GetMesh() == nullptr){return;}
-	USkeletalMeshComponentBudgeted* MeshBudgeted = Cast<USkeletalMeshComponentBudgeted>(GetMesh());
-	if(MeshBudgeted == nullptr){return;}
-	IAnimationBudgetAllocator* Allocator = IAnimationBudgetAllocator::Get(GetWorld());
-	if(Allocator)
-	{
-		Allocator->UnregisterComponent(MeshBudgeted);
-		MeshBudgeted->SetComponentTickEnabled(true);
-	}
-}
-
-void AALSBaseCharacter::SetSignificanceValue(const float Value, const bool bNeverSkip,
-	const bool bTickEvenIfNotRendered, const bool bAllowReducedWork, const bool bForceInterpolate) const
-{
-	if(GetMesh() == nullptr){return;}
-	USkeletalMeshComponentBudgeted* MeshBudgeted = Cast<USkeletalMeshComponentBudgeted>(GetMesh());
-	if(MeshBudgeted == nullptr){return;}
-	IAnimationBudgetAllocator* Allocator = IAnimationBudgetAllocator::Get(GetWorld());
-	if(Allocator)
-	{
-		Allocator->RegisterComponent(MeshBudgeted);
-	}
-}
-
 void AALSBaseCharacter::HandleNonMovingRotation(float DeltaTime)
 {
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("ALS HandleNonMovingRotation"), STAT_ALS_HandleNonMovingRotation, STATGROUP_ALS)
@@ -1857,17 +1848,6 @@ void AALSBaseCharacter::RightMovementAction(const float Value)
 		AddMovementInput(UKismetMathLibrary::GetRightVector(DirRotator), Value);
 	}
 }
-
-// void AALSBaseCharacter::CameraUpAction(float Value)
-// {
-// 	AddControllerPitchInput(LookUpDownRate * Value);
-// }
-//
-// void AALSBaseCharacter::CameraRightAction(float Value)
-// {
-// 	Super::CameraRightAction(Value);
-// 	AddControllerYawInput(LookLeftRightRate * Value);
-// }
 
 void AALSBaseCharacter::JumpAction(const bool bValue)
 {

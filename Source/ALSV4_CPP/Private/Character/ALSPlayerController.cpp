@@ -170,10 +170,11 @@ void AALSPlayerController::CameraRightAction(const FInputActionValue& Value)
 
 void AALSPlayerController::JumpAction(const FInputActionValue& Value)
 {
-	if (PossessedCharacter)
-	{
-		PossessedCharacter->JumpAction(Value.Get<bool>());
-	}
+	Super::JumpAction(Value);
+	// if(PossessedCharacter)
+	// {
+	// 	PossessedCharacter->JumpAction(Value.Get<bool>());
+	// }
 }
 
 void AALSPlayerController::SprintAction(const FInputActionValue& Value)
@@ -186,10 +187,11 @@ void AALSPlayerController::SprintAction(const FInputActionValue& Value)
 
 void AALSPlayerController::AimAction(const FInputActionValue& Value)
 {
-	if(PossessedCharacter)
-	{
-		PossessedCharacter->AimAction(Value.Get<bool>());
-	}
+	Super::AimAction(Value);
+	// if(PossessedCharacter)
+	// {
+	// 	PossessedCharacter->AimAction(Value.Get<bool>());
+	// }
 }
 
 void AALSPlayerController::CameraTapAction(const FInputActionValue& Value)

@@ -6,6 +6,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/StaticMesh.h"
 #include "AI/ALSAIController.h"
+#include "Character/AI/AIControllerBase.h"
 #include "Kismet/GameplayStatics.h"
 
 AALSCharacter::AALSCharacter(const FObjectInitializer& ObjectInitializer)
@@ -36,7 +37,7 @@ AALSCharacter::AALSCharacter(const FObjectInitializer& ObjectInitializer)
 	// StaticMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StaticMesh"));
 	// StaticMesh->SetupAttachment(HeldObjectRoot);
 
-	AIControllerClass = AALSAIController::StaticClass();
+	AIControllerClass = AAIControllerBase::StaticClass();
 }
 
 void AALSCharacter::ClearHeldObject()
