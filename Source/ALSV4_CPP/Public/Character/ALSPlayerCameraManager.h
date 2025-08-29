@@ -5,8 +5,10 @@
 
 #include "CoreMinimal.h"
 #include "Camera/PlayerCameraManager.h"
+#include "Interfaces/ALSCameraInterface.h"
 #include "ALSPlayerCameraManager.generated.h"
 
+class IALSCharacterInterface;
 // forward declarations
 class UALSDebugComponent;
 class AALSBaseCharacter;
@@ -15,12 +17,20 @@ class AALSBaseCharacter;
  * Player camera manager class
  */
 UCLASS(Blueprintable, BlueprintType)
-class ALSV4_CPP_API AALSPlayerCameraManager : public APlayerCameraManager
+class ALSV4_CPP_API AALSPlayerCameraManager : public APlayerCameraManager, public IALSCameraInterface
 {
 	GENERATED_BODY()
 
 public:
 	AALSPlayerCameraManager();
+
+
+	//~~		IALSCameraInterface		~~//
+	virtual void Possess(APawn* Pawn) override;
+	// virtual void SetRightShoulder(const bool bValue) override;
+	virtual void RequestDrawDebugTargets(const FVector& PivotTargetLocation) override;
+
+	//~~		IALSCameraInterface		~~//
 
 	UFUNCTION(BlueprintCallable, Category = "ALS|Camera")
 	void OnPossess(AALSBaseCharacter* NewCharacter);
@@ -43,8 +53,6 @@ protected:
 	bool CustomCameraBehavior(float DeltaTime, FVector& Location, FRotator& Rotation, float& FOV);
 
 public:
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "ALS|Camera")
-	TObjectPtr<AALSBaseCharacter> ControlledCharacter = nullptr;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "ALS|Camera")
 	TObjectPtr<USkeletalMeshComponent> CameraBehavior = nullptr;
@@ -72,6 +80,6 @@ protected:
 	FVector DebugViewOffset;
 
 private:
-	UPROPERTY()
-	TObjectPtr<UALSDebugComponent> ALSDebugComponent = nullptr;
+	IALSCharacterInterface* ALSCharacterInterface = nullptr;
+	class IALSDebugInterface* DebugALSInterface = nullptr;
 };

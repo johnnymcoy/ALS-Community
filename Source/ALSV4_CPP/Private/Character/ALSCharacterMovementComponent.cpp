@@ -3,24 +3,28 @@
 
 
 #include "Character/ALSCharacterMovementComponent.h"
+
+#include "BPLib/InteractionBPLib.h"
 #include "Character/ALSBaseCharacter.h"
 #include "Components/SplineComponent.h"
 
 #include "Curves/CurveVector.h"
+#include "Interfaces/InteractionInterface.h"
+#include "Kismet/KismetMathLibrary.h"
 #include "Library/ALSExtraData.h"
 
 DECLARE_CYCLE_STAT(TEXT("ALS Movement Comp (All Functions)"), STAT_ALS_Movement, STATGROUP_ALS);
 DECLARE_CYCLE_STAT(TEXT("ALS Movement Comp (All Gravity Funcs)"), STAT_ALS_Movement_Gravity, STATGROUP_ALS);
+
+DECLARE_LOG_CATEGORY_CLASS(LogALSMovement, Display, All);
 
 
 UALSCharacterMovementComponent::UALSCharacterMovementComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	NavAgentProps.bCanCrouch = true;
-
 	// NetworkSmoothingMode = ENetworkSmoothingMode::Disabled;
 	// RotationRate = FRotator(360.0f, 360.0f, 360.0f);
-
 	// bAlignComponentToFloor = false;
 	// bAlignComponentToGravity = false;
 	bAlignGravityToBase = false;
@@ -49,9 +53,7 @@ void UALSCharacterMovementComponent::OnMovementUpdated(float DeltaTime, const FV
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterMovementComponent::OnMovementUpdated);
 	SCOPE_CYCLE_COUNTER(STAT_ALS_Movement);
-
 	Super::OnMovementUpdated(DeltaTime, OldLocation, OldVelocity);
-
 	
 	if (!CharacterOwner)
 	{
@@ -75,8 +77,91 @@ void UALSCharacterMovementComponent::OnMovementUpdated(float DeltaTime, const FV
 	{
 		ReplicateGravityToClients();
 	}
-
+	
+	if(!bShouldCheckForJumps || OldVelocity.Length() <= 0.0f){return;}
+	TimeSinceLastUpdate += DeltaTime;
+	if(TimeSinceLastUpdate < UpdateInterval){return;}
+	TimeSinceLastUpdate = 0.0f;
+	const float Distance = FVector::Dist(OldLocation, GetActorLocation());
+	const bool bOverDistanceThreshold = Distance > DistanceChangeThreshold;
+	if(bOverDistanceThreshold)
+	{
+		CheckForJumps(OldVelocity);
+	}
 }
+
+void UALSCharacterMovementComponent::CheckForJumps(const FVector& OldVelocity) const
+{
+	TRACE_CPUPROFILER_EVENT_SCOPE(UALSCharacterMovementComponent::CheckForJumps);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Movement);
+	TArray<AActor*> ActorsToIgnore;
+	EDrawDebugTrace::Type DebugType = EDrawDebugTrace::None;
+	if(bDebuggingMode){DebugType = EDrawDebugTrace::ForDuration;}
+	FHitResult LineHitResult;
+
+	//- Calculate the line
+
+	//- Half of the Actors Height (z)	//
+	FVector AdjustHeight(0,0,(GetActorLocation().Z / 2));
+	//- Direction the character is facing	//
+	FVector Location;
+	FRotator Rotation;
+	GetCharacterOwner()->GetActorEyesViewPoint(Location, Rotation);
+	//- Forward Vector From Eyes rotation as body has problems 
+	FVector ForwardVector = Rotation.Vector();
+	FVector LineEnd = GetActorLocation() + ((OldVelocity.Length() + VelocityAdditionalOffset) * ForwardVector);
+	//- If we're moving toward the characters direction minus the height by half //
+	// if(!bMovingTowardPoint){LineEnd -= AdjustHeight;}
+	
+	bool bLineHit = UKismetSystemLibrary::LineTraceSingle(this, GetActorLocation(), LineEnd,UEngineTypes::ConvertToTraceType(ECC_GameTraceChannel3),
+		false, ActorsToIgnore, DebugType, LineHitResult, true, FLinearColor::Red, FLinearColor::Green,  JumpCheckFrequency);
+	if(!bLineHit){return;}
+	//- start the trace at the actor location + an offset toward the facing direction
+	FVector SphereTraceStart = LineHitResult.TraceStart + GetOwner()->GetActorRotation().Vector() * SphereStartOffset;
+
+	
+	float ClampedVelocity = UKismetMathLibrary::FClamp((OldVelocity.Length() + VelocityAdditionalOffset), VelocityAdditionalOffset,VelocityClampMax);
+	FVector TraceEnd = SphereTraceStart + (GetOwner()->GetActorRotation().Vector() * ClampedVelocity);
+
+	FHitResult SphereHitResult;
+	bool bSphereHit = UKismetSystemLibrary::SphereTraceSingle(this, SphereTraceStart, TraceEnd, SphereTraceRadius, UEngineTypes::ConvertToTraceType(ECC_GameTraceChannel3),
+		false, ActorsToIgnore, DebugType,SphereHitResult, true,FLinearColor::Red, FLinearColor::Green, JumpCheckFrequency);
+	if(!bSphereHit){return;}
+
+	//- check if its a door we can open?	//
+	if(SphereHitResult.GetActor() != nullptr && bShouldCheckForDoors)
+	{
+		IInteractionInterface* InteractableActor = UInteractionBPLib::GetInteractionFromComponent(SphereHitResult.GetActor());
+		if(InteractableActor != nullptr)
+		{
+			//@TODO Bring Back Door Opening 
+			FInteractionType DefaultInteraction;
+			if(InteractableActor->GetInteractionData().StimuliType == EAIStimuliType::Door &&
+				InteractableActor->GetInteractionData().GetDefaultInteraction(DefaultInteraction) &&
+				DefaultInteraction.InteractionType == EInteractionType::Open)
+			{
+				if(bDebuggingMode){UE_LOG(LogALSMovement, Warning, TEXT("Door In the way"));}
+				InteractableActor->OnInteract(GetCharacterOwner());
+			}
+		}
+	}
+	IBaseCharacterInput* Character = Cast<IBaseCharacterInput>(GetCharacterOwner());
+	if(Character != nullptr)
+	{
+		Character->JumpAction(true);
+	}
+	if(bDebuggingMode){UE_LOG(LogALSMovement, Warning, TEXT("Line Hit %s"), LineHitResult.GetActor() ? *LineHitResult.GetActor()->GetName() : *FString("None"));}
+	// JumpOverObstacle();
+	// JumpAction(true);
+	// if(MantleComponentReference != nullptr)
+	// {
+	// 	const FALSMantleTraceSettings TraceSettings;
+	// 	EDrawDebugTrace::Type DebugType = EDrawDebugTrace::None;
+	// 	if(bDebuggingMode){DebugType = EDrawDebugTrace::ForDuration;}
+	// 	MantleComponentReference->MantleCheck(TraceSettings, DebugType);
+	// }
+}
+
 
 void UALSCharacterMovementComponent::PhysWalking(float deltaTime, int32 Iterations)
 {
@@ -286,6 +371,7 @@ void UALSCharacterMovementComponent::SetAllowedGait(EALSGait NewAllowedGait)
 		}
 	}
 }
+
 
 ////-																				//
 //-								Gravity									        	//

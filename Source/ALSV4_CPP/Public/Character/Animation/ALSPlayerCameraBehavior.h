@@ -6,6 +6,7 @@
 
 #include "CoreMinimal.h"
 #include "Animation/AnimInstance.h"
+#include "Interfaces/ALSCameraBehaviorInterface.h"
 #include "Library/ALSCharacterEnumLibrary.h"
 
 #include "ALSPlayerCameraBehavior.generated.h"
@@ -17,12 +18,22 @@ class AALSPlayerController;
  * Main class for player camera movement behavior
  */
 UCLASS(Blueprintable, BlueprintType)
-class ALSV4_CPP_API UALSPlayerCameraBehavior : public UAnimInstance
+class ALSV4_CPP_API UALSPlayerCameraBehavior : public UAnimInstance, public IALSCameraBehaviorInterface
 {
 	GENERATED_BODY()
 
 public:
-	void SetRotationMode(EALSRotationMode RotationMode);
+	virtual void SetRotationMode(EALSRotationMode RotationMode) override;
+	virtual void SetRightShoulder(const bool bInRightShoulder) override;
+	virtual void SetAimDownSights(const bool bInAimDownSights) override;
+	virtual void SetMovementAction(const EALSMovementAction InAction) override;
+	virtual void SetState(const EALSMovementState InState) override;
+	virtual void SetGait(const EALSGait InGait) override;
+	virtual void SetStance(const EALSStance InStance) override;
+	virtual void SetViewMode(const EALSViewMode InViewMode) override;
+	virtual void SetDebugView(const bool bInDebugView) override;
+
+protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Read Only Data|Character Information")
 	EALSMovementState MovementState;

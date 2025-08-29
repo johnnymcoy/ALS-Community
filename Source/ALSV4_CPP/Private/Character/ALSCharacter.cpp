@@ -109,14 +109,14 @@ ECollisionChannel AALSCharacter::GetThirdPersonTraceParams(FVector& TraceOrigin,
 	return ECC_Camera;
 }
 
-FTransform AALSCharacter::GetThirdPersonPivotTarget()
+FTransform AALSCharacter::GetThirdPersonPivotTarget() const
 {
 	return FTransform(GetActorRotation(),
 	                  (GetMesh()->GetSocketLocation(TEXT("Head")) + GetMesh()->GetSocketLocation(TEXT("root"))) / 2.0f,
 	                  FVector::OneVector);
 }
 
-FVector AALSCharacter::GetFirstPersonCameraTarget()
+FVector AALSCharacter::GetFirstPersonCameraTarget() const
 {
 	return GetMesh()->GetSocketLocation(TEXT("FP_Camera"));
 }

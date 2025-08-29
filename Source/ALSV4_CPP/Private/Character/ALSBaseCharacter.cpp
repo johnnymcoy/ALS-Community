@@ -3,19 +3,18 @@
 
 
 #include "Character/ALSBaseCharacter.h"
-#include "Character/Animation/ALSCharacterAnimInstance.h"
-#include "Character/Animation/ALSPlayerCameraBehavior.h"
 #include "Library/ALSMathLibrary.h"
-#include "Components/ALSDebugComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Curves/CurveFloat.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/KismetMathLibrary.h"
-#include "Kismet/GameplayStatics.h"
 #include "NavAreas/NavArea_Obstacle.h"
 #include "TimerManager.h"
+#include "Components/OptimizationComponent.h"
 #include "Data/GameOptimizationData.h"
 #include "Interfaces/ALSAnimInterface.h"
+#include "Interfaces/ALSCameraBehaviorInterface.h"
+#include "Interfaces/ALSDebugInterface.h"
 #include "Net/UnrealNetwork.h"
 
 
@@ -171,6 +170,8 @@ void AALSBaseCharacter::BeginPlay()
 	{
 		AnimInstanceInterface = Cast<IALSAnimInterface>(GetMesh()->GetAnimInstance());
 	}
+	GetALSDebugInterface();
+	GetALSCamera();
 
 	// If we're in networked game, disable curved movement
 	bEnableNetworkOptimizations = !IsNetMode(NM_Standalone);
@@ -206,7 +207,7 @@ void AALSBaseCharacter::BeginPlay()
 
 	MyCharacterMovementComponent->SetMovementSettings(GetTargetMovementSettings());
 
-	ALSDebugComponent = FindComponentByClass<UALSDebugComponent>();
+	// ALSDebugComponent = FindComponentByClass<UALSDebugComponent>();
 }
 
 void AALSBaseCharacter::Ragdoll()
@@ -227,6 +228,20 @@ void AALSBaseCharacter::RagdollFrozen(const bool bFrozen)
 {
 	Super::RagdollFrozen(bFrozen);
 	bDisableRagdollUpdate = bFrozen;
+}
+
+void AALSBaseCharacter::OptimizeCharacterMovement(const FCharacterMovementOptimizationSettings& MovementSettings)
+{
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Base_Character);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
+	TRACE_CPUPROFILER_EVENT_SCOPE(ACharacterBase::OnOptimizationLevelChanged);
+	Super::OptimizeCharacterMovement(MovementSettings);
+	if(GetCharacterMovement() == nullptr){LogDebugError("OptimizeCharacterMovement CharacterMovement Null");return;}
+	if(GetALSMovementComponent()->bShouldCheckForJumps != MovementSettings.bShouldCheckForJumps)
+	{
+		GetALSMovementComponent()->bShouldCheckForJumps = MovementSettings.bShouldCheckForJumps;
+	}
+
 }
 
 void AALSBaseCharacter::Tick(float DeltaTime)
@@ -399,6 +414,33 @@ void AALSBaseCharacter::SetMovementState(const EALSMovementState NewState, bool 
 		{
 			AnimInstanceInterface->SetMovementState(MovementState);
 		}
+	}
+}
+
+FVector AALSBaseCharacter::GetCharacterAcceleration(float& MaxAcceleration) const
+{
+	if(GetCharacterMovement() == nullptr){return FVector::ZeroVector;}
+	MaxAcceleration = GetCharacterMovement()->MaxAcceleration;
+	return GetCharacterMovement()->GetCurrentAcceleration();
+}
+
+float AALSBaseCharacter::GetMaxWalkSpeed() const
+{
+	if(GetCharacterMovement() == nullptr){return 0.0f;}
+	return GetCharacterMovement()->MaxWalkSpeed;
+}
+
+void AALSBaseCharacter::SetCameraBehavior(UObject* CameraBehaviorRef)
+{
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::SetCameraBehavior);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Base_Character);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
+	if(CameraBehaviorRef == nullptr){return;}
+	CameraBehavior = Cast<IALSCameraBehaviorInterface>(CameraBehaviorRef);
+	if(CameraBehavior == nullptr){LogDebugError("SetCameraBehavior Camera Behavior failed");}
+	if(DebugALSInterface != nullptr)
+	{
+		DebugALSInterface->SetCameraBehavior(CameraBehaviorRef);
 	}
 }
 
@@ -935,9 +977,9 @@ void AALSBaseCharacter::Server_SetVisibleMesh_Implementation(USkeletalMesh* NewV
 void AALSBaseCharacter::SetRightShoulder(const bool bNewRightShoulder)
 {
 	bRightShoulder = bNewRightShoulder;
-	if (CameraBehavior)
+	if(CameraBehavior)
 	{
-		CameraBehavior->bRightShoulder = bRightShoulder;
+		CameraBehavior->SetRightShoulder(bRightShoulder);
 	}
 }
 
@@ -957,7 +999,7 @@ void AALSBaseCharacter::SetAimDownSights(const bool bNewAimDownSights)
 		bAimDownSights = bNewAimDownSights;
 		if(CameraBehavior != nullptr)
 		{
-			CameraBehavior->bAimDownSights = bAimDownSights;
+			CameraBehavior->SetAimDownSights(bAimDownSights);
 		}
 	}
 	else
@@ -965,7 +1007,7 @@ void AALSBaseCharacter::SetAimDownSights(const bool bNewAimDownSights)
 		bAimDownSights = false;
 		if(CameraBehavior != nullptr)
 		{
-			CameraBehavior->bAimDownSights = false;
+			CameraBehavior->SetAimDownSights(false);
 		}
 
 	}
@@ -978,15 +1020,28 @@ ECollisionChannel AALSBaseCharacter::GetThirdPersonTraceParams(FVector& TraceOri
 	return ECC_Visibility;
 }
 
-FTransform AALSBaseCharacter::GetThirdPersonPivotTarget()
+FTransform AALSBaseCharacter::GetThirdPersonPivotTarget() const
 {
 	return GetActorTransform();
 }
 
-FVector AALSBaseCharacter::GetFirstPersonCameraTarget()
+FVector AALSBaseCharacter::GetFirstPersonCameraTarget() const
 {
 	if(GetMesh() == nullptr){return FVector::ZeroVector;}
 	return GetMesh()->GetSocketLocation(NAME_FP_Camera);
+}
+
+void AALSBaseCharacter::GetCapsuleSize(float& ScaledHalfHeight, float& Radius) const
+{
+	if(GetCapsuleComponent() == nullptr){return;}
+	ScaledHalfHeight = GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+	Radius = GetCapsuleComponent()->GetScaledCapsuleRadius();
+}
+
+FVector AALSBaseCharacter::GetSocketLocation(FName SocketName) const
+{
+	if(GetMesh() == nullptr){return FVector::ZeroVector;}
+	return GetMesh()->GetSocketLocation(SocketName);
 }
 
 //@TODO maybe remove? 
@@ -1102,18 +1157,19 @@ void AALSBaseCharacter::SetActorLocationDuringRagdoll(float DeltaTime)
 	const bool bHit = World->LineTraceSingleByChannel(HitResult, TargetRagdollLocation, TraceVect,
 	                                                  ECC_Visibility, Params);
 
-	if (ALSDebugComponent && ALSDebugComponent->GetShowTraces())
+	if(DebugALSInterface != nullptr && DebugALSInterface->GetShowTraces())
 	{
-		UALSDebugComponent::DrawDebugLineTraceSingle(World,
-		                                             TargetRagdollLocation,
-		                                             TraceVect,
-		                                             EDrawDebugTrace::Type::ForOneFrame,
-		                                             bHit,
-		                                             HitResult,
-		                                             FLinearColor::Red,
-		                                             FLinearColor::Green,
-		                                             1.0f);
+		DebugALSInterface->DrawDebugLineTraceSingle_Local(World,
+														TargetRagdollLocation,
+														TraceVect,
+														EDrawDebugTrace::Type::ForOneFrame,
+														bHit,
+														HitResult,
+														FLinearColor::Red,
+														FLinearColor::Green,
+														1.0f);
 	}
+
 
 	bRagdollOnGround = HitResult.IsValidBlockingHit();
 	FVector NewRagdollLoc = TargetRagdollLocation;
@@ -1155,22 +1211,16 @@ void AALSBaseCharacter::OptimizationLevelChanged(const EOptimizationLevel Level)
 	switch(Level)
 	{
 	case EOptimizationLevel::None:
-		SetActorTickInterval(0.0f);
 		break;
 	case EOptimizationLevel::FirstWave:
-		SetActorTickInterval(0.0f);
 		break;
 	case EOptimizationLevel::SecondWave:
-		SetActorTickInterval(0.0f);
 		break;
 	case EOptimizationLevel::ThirdWave:
-		SetActorTickInterval(0.0f);
 		break;
 	case EOptimizationLevel::FourthWave:
-		SetActorTickInterval(0.0f);
 		break;
 	case EOptimizationLevel::Max:
-		SetActorTickInterval(0.0f);
 		break;
 	}
 }
@@ -1229,7 +1279,7 @@ void AALSBaseCharacter::OnMovementStateChanged(const EALSMovementState PreviousS
 
 	if (CameraBehavior)
 	{
-		CameraBehavior->MovementState = MovementState;
+		CameraBehavior->SetState(MovementState);
 	}
 }
 
@@ -1259,7 +1309,7 @@ void AALSBaseCharacter::OnMovementActionChanged(const EALSMovementAction Previou
 
 	if (CameraBehavior)
 	{
-		CameraBehavior->MovementAction = MovementAction;
+		CameraBehavior->SetMovementAction(MovementAction);
 	}
 }
 
@@ -1271,7 +1321,7 @@ void AALSBaseCharacter::OnStanceChanged(const EALSStance PreviousStance)
 
 	if (CameraBehavior)
 	{
-		CameraBehavior->Stance = Stance;
+		CameraBehavior->SetStance(Stance);
 	}
 
 	MyCharacterMovementComponent->SetMovementSettings(GetTargetMovementSettings());
@@ -1300,7 +1350,7 @@ void AALSBaseCharacter::OnGaitChanged(const EALSGait PreviousGait)
 {
 	if (CameraBehavior)
 	{
-		CameraBehavior->Gait = Gait;
+		CameraBehavior->SetGait(Gait);
 	}
 }
 
@@ -1326,7 +1376,7 @@ void AALSBaseCharacter::OnViewModeChanged(const EALSViewMode PreviousViewMode)
 
 	if (CameraBehavior)
 	{
-		CameraBehavior->ViewMode = ViewMode;
+		CameraBehavior->SetViewMode(ViewMode);
 	}
 }
 
@@ -1990,7 +2040,7 @@ void AALSBaseCharacter::StanceAction()
 	// Notice: MovementState == EALSMovementState::InAir case is removed
 }
 
-void AALSBaseCharacter::WalkAction_Implementation()
+void AALSBaseCharacter::WalkAction()
 {
 	if (DesiredGait == EALSGait::Walking)
 	{
@@ -2002,7 +2052,7 @@ void AALSBaseCharacter::WalkAction_Implementation()
 	}
 }
 
-void AALSBaseCharacter::RagdollAction_Implementation()
+void AALSBaseCharacter::RagdollAction()
 {
 	// Ragdoll Action: Press "Ragdoll Action" to toggle the ragdoll state on or off.
 	if (GetMovementState() == EALSMovementState::Ragdoll)
@@ -2015,7 +2065,7 @@ void AALSBaseCharacter::RagdollAction_Implementation()
 	}
 }
 
-void AALSBaseCharacter::VelocityDirectionAction_Implementation()
+void AALSBaseCharacter::VelocityDirectionAction()
 {
 	// Select Rotation Mode: Switch the desired (default) rotation mode to Velocity or Looking Direction.
 	// This will be the mode the character reverts back to when un-aiming
@@ -2023,7 +2073,7 @@ void AALSBaseCharacter::VelocityDirectionAction_Implementation()
 	SetRotationMode(EALSRotationMode::VelocityDirection);
 }
 
-void AALSBaseCharacter::LookingDirectionAction_Implementation()
+void AALSBaseCharacter::LookingDirectionAction()
 {
 	SetDesiredRotationMode(EALSRotationMode::LookingDirection);
 	SetRotationMode(EALSRotationMode::LookingDirection);
@@ -2074,6 +2124,33 @@ void AALSBaseCharacter::OnRep_VisibleMesh(const USkeletalMesh* PreviousSkeletalM
 	OnVisibleMeshChanged(PreviousSkeletalMesh);
 }
 
+
+IALSCameraInterface* AALSBaseCharacter::GetALSCamera()
+{
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::GetALSCamera);
+	if(ALSCameraInterface == nullptr)
+	{
+		// ALSCameraInterface = Cast<IALSCharacterInput>(Camera);
+	}
+	return ALSCameraInterface;
+}
+
+IALSDebugInterface* AALSBaseCharacter::GetALSDebugInterface()
+{
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::GetALSDebugInterface);
+	if(DebugALSInterface == nullptr)
+	{
+		for(const auto& Component: GetComponentsByInterface(UALSDebugInterface::StaticClass()))
+		{
+			if(Component == nullptr){continue;}
+			IALSDebugInterface* DebugComponent = Cast<IALSDebugInterface>(Component);
+			if(DebugComponent == nullptr){continue;}
+			DebugALSInterface = DebugComponent;
+			break;
+		}
+	}
+	return DebugALSInterface;
+}
 
 void AALSBaseCharacter::SetupCapsuleComponent() const
 {

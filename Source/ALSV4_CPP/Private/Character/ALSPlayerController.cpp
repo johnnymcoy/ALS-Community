@@ -3,51 +3,45 @@
 
 
 #include "Character/ALSPlayerController.h"
-
-#include "EnhancedInputComponent.h"
+// #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
-#include "InputMappingContext.h"
+// #include "InputMappingContext.h"
 #include "Engine/LocalPlayer.h"
-#include "AI/ALSAIController.h"
-#include "Character/ALSCharacter.h"
-#include "Character/ALSPlayerCameraManager.h"
-#include "Components/ALSDebugComponent.h"
-#include "Kismet/GameplayStatics.h"
+#include "Interfaces/ALSCameraInterface.h"
+#include "Interfaces/ALSCharacterInput.h"
+#include "Interfaces/ALSDebugInterface.h"
 
 void AALSPlayerController::OnPossess(APawn* NewPawn)
 {
 	Super::OnPossess(NewPawn);
-	PossessedCharacter = Cast<AALSBaseCharacter>(NewPawn);
+	CharacterALSInterface = nullptr;
+	DebugALSInterface = nullptr;
 	if (!IsRunningDedicatedServer())
 	{
 		// Servers want to setup camera only in listen servers.
 		SetupCamera();
 	}
-
-	// SetupInputs();
-
-	if (!IsValid(PossessedCharacter)) return;
-	
-	UALSDebugComponent* DebugComp = Cast<UALSDebugComponent>(PossessedCharacter->GetComponentByClass(UALSDebugComponent::StaticClass()));
-	if (DebugComp)
+	GetALSCharacterInput();
+	GetALSDebugInterface();
+	if(GetALSDebugInterface() != nullptr)
 	{
-		DebugComp->OnPlayerControllerInitialized(this);
+		GetALSDebugInterface()->InitializePlayerController(this);
 	}
 }
 
 void AALSPlayerController::OnRep_Pawn()
 {
 	Super::OnRep_Pawn();
-	PossessedCharacter = Cast<AALSBaseCharacter>(GetPawn());
+	CharacterALSInterface = nullptr;
+	DebugALSInterface = nullptr;
+	GetALSCharacterInput();
+	GetALSDebugInterface();
 	SetupCamera();
 	// SetupInputs();
-	
-	if (!PossessedCharacter) return;
 
-	UALSDebugComponent* DebugComp = Cast<UALSDebugComponent>(PossessedCharacter->GetComponentByClass(UALSDebugComponent::StaticClass()));
-	if (DebugComp)
+	if(GetALSDebugInterface() != nullptr)
 	{
-		DebugComp->OnPlayerControllerInitialized(this);
+		GetALSDebugInterface()->InitializePlayerController(this);
 	}
 }
 
@@ -103,281 +97,213 @@ void AALSPlayerController::SetupInputs()
 	// 	BindActions(DefaultInputMappingContext);
 	// 	// BindActions(DebugInputMappingContext);
 	// }
-	if (PossessedCharacter)
+	if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
 	{
-		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
+		FModifyContextOptions Options;
+		Options.bForceImmediately = 1;
+		Subsystem->AddMappingContext(DefaultInputMappingContext, 3, Options);
+		if(GetALSDebugInterface() != nullptr)
 		{
-			FModifyContextOptions Options;
-			Options.bForceImmediately = 1;
-			Subsystem->AddMappingContext(DefaultInputMappingContext, 1, Options);
-			UALSDebugComponent* DebugComp = Cast<UALSDebugComponent>(PossessedCharacter->GetComponentByClass(UALSDebugComponent::StaticClass()));
-			if (DebugComp)
-			{
-				// Do only if we have debug component
-				Subsystem->AddMappingContext(DebugInputMappingContext, 0, Options);
-				BindActions(DebugInputMappingContext);
-			}
-			BindActions(DefaultInputMappingContext);
+			// Do only if we have debug component
+			Subsystem->AddMappingContext(DebugInputMappingContext, 0, Options);
+			BindActions(DebugInputMappingContext);
 		}
-	} 
+		BindActions(DefaultInputMappingContext);
+	}
+	// } 
 }
 
 void AALSPlayerController::SetupCamera()
 {
 	// Call "OnPossess" in Player Camera Manager when possessing a pawn
-	AALSPlayerCameraManager* CastedMgr = Cast<AALSPlayerCameraManager>(PlayerCameraManager);
-	if (PossessedCharacter && CastedMgr)
+	IALSCameraInterface* CastedMgr = Cast<IALSCameraInterface>(PlayerCameraManager);
+	if(CastedMgr != nullptr && GetPawn() != nullptr)
 	{
-		CastedMgr->OnPossess(PossessedCharacter);
+		CastedMgr->Possess(GetPawn());
 	}
-}
-
-void AALSPlayerController::ForwardMovementAction(const FInputActionValue& Value)
-{
-	Super::ForwardMovementAction(Value);
-	if (PossessedCharacter)
-	{
-		PossessedCharacter->ForwardMovementAction(Value.GetMagnitude());
-	}
-}
-
-void AALSPlayerController::RightMovementAction(const FInputActionValue& Value)
-{
-	Super::RightMovementAction(Value);
-	if(PossessedCharacter)
-	{
-		PossessedCharacter->RightMovementAction(Value.GetMagnitude());
-	}
-}
-
-void AALSPlayerController::CameraUpAction(const FInputActionValue& Value)
-{
-	Super::CameraUpAction(Value);
-	if(PossessedCharacter)
-	{
-		PossessedCharacter->CameraUpAction(Value.GetMagnitude());
-	}
-}
-
-void AALSPlayerController::CameraRightAction(const FInputActionValue& Value)
-{
-	Super::CameraRightAction(Value);
-	if (PossessedCharacter)
-	{
-		PossessedCharacter->CameraRightAction(Value.GetMagnitude());
-	}
-}
-
-void AALSPlayerController::JumpAction(const FInputActionValue& Value)
-{
-	Super::JumpAction(Value);
-	// if(PossessedCharacter)
+	// AALSPlayerCameraManager* CastedMgr = Cast<AALSPlayerCameraManager>(PlayerCameraManager);
+	// if(PossessedCharacter && CastedMgr)
 	// {
-	// 	PossessedCharacter->JumpAction(Value.Get<bool>());
+	// 	CastedMgr->OnPossess(PossessedCharacter);
 	// }
 }
 
 void AALSPlayerController::SprintAction(const FInputActionValue& Value)
 {
-	if (PossessedCharacter)
+	if(GetALSCharacterInput())
 	{
-		PossessedCharacter->SprintAction(Value.Get<bool>());
+		GetALSCharacterInput()->SprintAction(Value.Get<bool>());
 	}
-}
-
-void AALSPlayerController::AimAction(const FInputActionValue& Value)
-{
-	Super::AimAction(Value);
-	// if(PossessedCharacter)
-	// {
-	// 	PossessedCharacter->AimAction(Value.Get<bool>());
-	// }
 }
 
 void AALSPlayerController::CameraTapAction(const FInputActionValue& Value)
 {
-	if (PossessedCharacter)
+	if(GetALSCharacterInput())
 	{
-		PossessedCharacter->CameraTapAction();
+		GetALSCharacterInput()->CameraTapAction();
 	}
 }
 
 void AALSPlayerController::CameraHeldAction(const FInputActionValue& Value)
 {
-	if (PossessedCharacter)
+	if(GetALSCharacterInput())
 	{
-		PossessedCharacter->CameraHeldAction();
+		GetALSCharacterInput()->CameraHeldAction();
 	}
 }
 
 void AALSPlayerController::StanceAction(const FInputActionValue& Value)
 {
-	if (PossessedCharacter && Value.Get<bool>())
+	if (GetALSCharacterInput() && Value.Get<bool>())
 	{
-		PossessedCharacter->StanceAction();
+		GetALSCharacterInput()->StanceAction();
 	}
 }
 
 void AALSPlayerController::WalkAction(const FInputActionValue& Value)
 {
-	if (PossessedCharacter && Value.Get<bool>())
+	if (GetALSCharacterInput() && Value.Get<bool>())
 	{
-		PossessedCharacter->WalkAction();
+		GetALSCharacterInput()->WalkAction();
 	}
 }
 
 void AALSPlayerController::RagdollAction(const FInputActionValue& Value)
 {
-	if (PossessedCharacter && Value.Get<bool>())
+	if (GetALSCharacterInput() && Value.Get<bool>())
 	{
-		PossessedCharacter->RagdollAction();
+		GetALSCharacterInput()->RagdollAction();
 	}
 }
 
 void AALSPlayerController::VelocityDirectionAction(const FInputActionValue& Value)
 {
-	if (PossessedCharacter && Value.Get<bool>())
+	if (GetALSCharacterInput() && Value.Get<bool>())
 	{
-		PossessedCharacter->VelocityDirectionAction();
+		GetALSCharacterInput()->VelocityDirectionAction();
 	}
 }
 
 void AALSPlayerController::LookingDirectionAction(const FInputActionValue& Value)
 {
-	if (PossessedCharacter && Value.Get<bool>())
+	if (GetALSCharacterInput() && Value.Get<bool>())
 	{
-		PossessedCharacter->LookingDirectionAction();
+		GetALSCharacterInput()->LookingDirectionAction();
 	}
 }
 
 void AALSPlayerController::DebugToggleHudAction(const FInputActionValue& Value)
 {
-	if (PossessedCharacter && Value.Get<bool>())
+	if (GetALSDebugInterface() && Value.Get<bool>())
 	{
-		UALSDebugComponent* DebugComp = Cast<UALSDebugComponent>(PossessedCharacter->GetComponentByClass(UALSDebugComponent::StaticClass()));
-		if (DebugComp)
-		{
-			DebugComp->ToggleHud();
-		}
+		GetALSDebugInterface()->ToggleHUD();
 	}
 }
 
 void AALSPlayerController::DebugToggleDebugViewAction(const FInputActionValue& Value)
 {
-	if (PossessedCharacter && Value.Get<bool>())
+	if (GetALSDebugInterface() && Value.Get<bool>())
 	{
-		UALSDebugComponent* DebugComp = Cast<UALSDebugComponent>(PossessedCharacter->GetComponentByClass(UALSDebugComponent::StaticClass()));
-		if (DebugComp)
-		{
-			DebugComp->ToggleDebugView();
-		}
+		GetALSDebugInterface()->ToggleDebugView();
 	}
 }
 
 void AALSPlayerController::DebugToggleTracesAction(const FInputActionValue& Value)
 {
-	if (PossessedCharacter && Value.Get<bool>())
+	if (GetALSDebugInterface() && Value.Get<bool>())
 	{
-		UALSDebugComponent* DebugComp = Cast<UALSDebugComponent>(PossessedCharacter->GetComponentByClass(UALSDebugComponent::StaticClass()));
-		if (DebugComp)
-		{
-			DebugComp->ToggleTraces();
-		}
+		GetALSDebugInterface()->ToggleTraces();
 	}
 }
 
 void AALSPlayerController::DebugToggleShapesAction(const FInputActionValue& Value)
 {
-	if (PossessedCharacter && Value.Get<bool>())
+	if (GetALSDebugInterface() && Value.Get<bool>())
 	{
-		UALSDebugComponent* DebugComp = Cast<UALSDebugComponent>(PossessedCharacter->GetComponentByClass(UALSDebugComponent::StaticClass()));
-		if (DebugComp)
-		{
-			DebugComp->ToggleDebugShapes();
-		}
+		GetALSDebugInterface()->ToggleDebugShapes();
 	}
 }
 
 void AALSPlayerController::DebugToggleLayerColorsAction(const FInputActionValue& Value)
 {
-	if (PossessedCharacter && Value.Get<bool>())
+	if (GetALSDebugInterface() && Value.Get<bool>())
 	{
-		UALSDebugComponent* DebugComp = Cast<UALSDebugComponent>(PossessedCharacter->GetComponentByClass(UALSDebugComponent::StaticClass()));
-		if (DebugComp)
-		{
-			DebugComp->ToggleLayerColors();
-		}
+		GetALSDebugInterface()->ToggleLayerColors();
 	}
 }
 
 void AALSPlayerController::DebugToggleCharacterInfoAction(const FInputActionValue& Value)
 {
-	if (PossessedCharacter && Value.Get<bool>())
+	if (GetALSDebugInterface() && Value.Get<bool>())
 	{
-		UALSDebugComponent* DebugComp = Cast<UALSDebugComponent>(PossessedCharacter->GetComponentByClass(UALSDebugComponent::StaticClass()));
-		if (DebugComp)
-		{
-			DebugComp->ToggleCharacterInfo();
-		}
+		GetALSDebugInterface()->ToggleCharacterInfo();
 	}
 }
 
 void AALSPlayerController::DebugToggleSlomoAction(const FInputActionValue& Value)
 {
-	if (PossessedCharacter && Value.Get<bool>())
+	if (GetALSDebugInterface() && Value.Get<bool>())
 	{
-		UALSDebugComponent* DebugComp = Cast<UALSDebugComponent>(PossessedCharacter->GetComponentByClass(UALSDebugComponent::StaticClass()));
-		if (DebugComp)
-		{
-			DebugComp->ToggleSlomo();
-		}
+		GetALSDebugInterface()->ToggleSlomo();
 	}
 }
 
 void AALSPlayerController::DebugFocusedCharacterCycleAction(const FInputActionValue& Value)
 {
-	if (PossessedCharacter)
+	if (GetALSDebugInterface())
 	{
-		UALSDebugComponent* DebugComp = Cast<UALSDebugComponent>(PossessedCharacter->GetComponentByClass(UALSDebugComponent::StaticClass()));
-		if (DebugComp)
-		{
-			DebugComp->FocusedDebugCharacterCycle(Value.GetMagnitude() > 0);
-		}
+		GetALSDebugInterface()->FocusedDebugCharacterCycle(Value.GetMagnitude() > 0);
 	}
 }
 
 void AALSPlayerController::DebugToggleMeshAction(const FInputActionValue& Value)
 {
-	if (PossessedCharacter && Value.Get<bool>())
+	if (GetALSDebugInterface() && Value.Get<bool>())
 	{
-		UALSDebugComponent* DebugComp = Cast<UALSDebugComponent>(PossessedCharacter->GetComponentByClass(UALSDebugComponent::StaticClass()));
-		if (DebugComp)
-		{
-			DebugComp->ToggleDebugMesh();
-		}
+		GetALSDebugInterface()->ToggleDebugMesh();
 	}
 }
 
 void AALSPlayerController::DebugOpenOverlayMenuAction(const FInputActionValue& Value)
 {
-	if (PossessedCharacter)
+	if (GetALSDebugInterface())
 	{
-		UALSDebugComponent* DebugComp = Cast<UALSDebugComponent>(PossessedCharacter->GetComponentByClass(UALSDebugComponent::StaticClass()));
-		if (DebugComp)
-		{
-			DebugComp->OpenOverlayMenu(Value.Get<bool>());
-		}
+		GetALSDebugInterface()->OpenOverlayMenu(Value.Get<bool>());
 	}
 }
 
 void AALSPlayerController::DebugOverlayMenuCycleAction(const FInputActionValue& Value)
 {
-	if (PossessedCharacter)
+	if (GetALSDebugInterface())
 	{
-		UALSDebugComponent* DebugComp = Cast<UALSDebugComponent>(PossessedCharacter->GetComponentByClass(UALSDebugComponent::StaticClass()));
-		if (DebugComp)
+		GetALSDebugInterface()->OverlayMenuCycle(Value.GetMagnitude() > 0);
+	}
+}
+
+IALSCharacterInput* AALSPlayerController::GetALSCharacterInput()
+{
+	// SCOPE_CYCLE_COUNTER(STAT_ALS_CHARACTER);
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSPlayerController::GetALSCharacterInput);
+	if(CharacterALSInterface == nullptr)
+	{
+		CharacterALSInterface = Cast<IALSCharacterInput>(GetPawn());
+	}
+	return CharacterALSInterface;
+}
+
+IALSDebugInterface* AALSPlayerController::GetALSDebugInterface()
+{
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSPlayerController::GetALSDebugInterface);
+	if(DebugALSInterface == nullptr && GetPawn() != nullptr)
+	{
+		for(const auto& Component:GetPawn()->GetComponentsByInterface(UALSDebugInterface::StaticClass()))
 		{
-			DebugComp->OverlayMenuCycle(Value.GetMagnitude() > 0);
+			if(Component == nullptr){continue;}
+			IALSDebugInterface* DebugComponent = Cast<IALSDebugInterface>(Component);
+			if(DebugComponent == nullptr){continue;}
+			DebugALSInterface = DebugComponent;
+			break;
 		}
 	}
+	return DebugALSInterface;
 }

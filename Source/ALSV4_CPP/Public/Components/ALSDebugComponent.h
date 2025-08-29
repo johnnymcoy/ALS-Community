@@ -7,13 +7,15 @@
 
 #include "Kismet/KismetSystemLibrary.h"
 #include "Components/ActorComponent.h"
+#include "Interfaces/ALSDebugInterface.h"
 #include "ALSDebugComponent.generated.h"
 
+class IALSCharacterInterface;
 class AALSBaseCharacter;
 class USkeletalMesh;
 
 UCLASS(Blueprintable, BlueprintType)
-class ALSV4_CPP_API UALSDebugComponent : public UActorComponent
+class ALSV4_CPP_API UALSDebugComponent : public UActorComponent, public IALSDebugInterface
 {
 	GENERATED_BODY()
 
@@ -21,6 +23,8 @@ public:
 	UALSDebugComponent();
 
 	virtual void BeginPlay() override;
+
+	virtual void InitializePlayerController(APlayerController* Controller) override;
 
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable, Category = "ALS|Debug")
 	void OnPlayerControllerInitialized(APlayerController* Controller);
@@ -49,50 +53,34 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "ALS|Debug")
 	void ToggleGlobalTimeDilationLocal(float TimeDilation);
 
-	UFUNCTION(BlueprintCallable, Category = "ALS|Debug")
-	void ToggleSlomo();
+	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable, Category = "ALS|Debug", DisplayName="Open Overlay Menu")
+	void OnOpenOverlayMenu(bool bValue);
+	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable, Category = "ALS|Debug", DisplayName="Overlay Menu Cycle")
+	void OnOverlayMenuCycle(bool bValue);
 
-	UFUNCTION(BlueprintCallable, Category = "ALS|Debug")
-	void ToggleHud() { bShowHud = !bShowHud; }
 
-	UFUNCTION(BlueprintCallable, Category = "ALS|Debug")
-	void ToggleDebugView();
+	virtual void ToggleSlomo() override;
+	virtual void ToggleHUD() override { bShowHud = !bShowHud; }
+	virtual void ToggleDebugView() override;
+	virtual void OpenOverlayMenu(bool bValue) override;
+	virtual void OverlayMenuCycle(bool bValue) override;
+	virtual void ToggleDebugMesh() override;
+	virtual void ToggleTraces() override { bShowTraces = !bShowTraces; }
+	virtual void ToggleDebugShapes() override { bShowDebugShapes = !bShowDebugShapes; }
+	virtual void ToggleLayerColors() override { bShowLayerColors = !bShowLayerColors; }
+	virtual void ToggleCharacterInfo() override { bShowCharacterInfo = !bShowCharacterInfo; }
+	virtual void FocusedDebugCharacterCycle(bool bValue) override;
 
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "ALS|Debug")
-	void OpenOverlayMenu(bool bValue);
+	virtual bool GetDebugView() const override { return bDebugView; }
+	virtual bool GetShowTraces() const override { return bShowTraces; }
+	virtual bool GetShowDebugShapes() const override { return bShowDebugShapes; }
+	virtual bool GetShowLayerColors() override { return bShowLayerColors; }
+	virtual bool GetShowHUD() const override {return bShowHud;};
+	virtual bool GetShowCharacterInfo()  const override {return bShowCharacterInfo;};
+	virtual bool GetSlowmo() const override {return bSlomo;};
 
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "ALS|Debug")
-	void OverlayMenuCycle(bool bValue);
+	virtual void SetCameraBehavior(UObject* CameraBehaviorRef) override;
 
-	UFUNCTION(BlueprintCallable, Category = "ALS|Debug")
-	void ToggleDebugMesh();
-
-	UFUNCTION(BlueprintCallable, Category = "ALS|Debug")
-	void ToggleTraces() { bShowTraces = !bShowTraces; }
-
-	UFUNCTION(BlueprintCallable, Category = "ALS|Debug")
-	void ToggleDebugShapes() { bShowDebugShapes = !bShowDebugShapes; }
-
-	UFUNCTION(BlueprintCallable, Category = "ALS|Debug")
-	void ToggleLayerColors() { bShowLayerColors = !bShowLayerColors; }
-
-	UFUNCTION(BlueprintCallable, Category = "ALS|Debug")
-	void ToggleCharacterInfo() { bShowCharacterInfo = !bShowCharacterInfo; }
-
-	UFUNCTION(BlueprintCallable, Category = "ALS|Debug")
-	bool GetDebugView() { return bDebugView; }
-
-	UFUNCTION(BlueprintCallable, Category = "ALS|Debug")
-	bool GetShowTraces() { return bShowTraces; }
-
-	UFUNCTION(BlueprintCallable, Category = "ALS|Debug")
-	bool GetShowDebugShapes() { return bShowDebugShapes; }
-
-	UFUNCTION(BlueprintCallable, Category = "ALS|Debug")
-	bool GetShowLayerColors() { return bShowLayerColors; }
-
-	UFUNCTION(BlueprintCallable, Category = "ALS|Debug")
-	void FocusedDebugCharacterCycle(bool bValue);
 
 	// utility functions to draw trace debug shapes,
 	// which are derived from Engine/Private/KismetTraceUtils.h.
@@ -107,6 +95,15 @@ public:
 	                                     FLinearColor TraceColor,
 	                                     FLinearColor TraceHitColor,
 	                                     float DrawTime);
+	virtual void DrawDebugLineTraceSingle_Local(const UWorld* World,
+									 const FVector& Start,
+									 const FVector& End,
+									 EDrawDebugTrace::Type DrawDebugType,
+									 bool bHit,
+									 const FHitResult& OutHit,
+									 FLinearColor TraceColor,
+									 FLinearColor TraceHitColor,
+									 float DrawTime) override;
 
 	static void DrawDebugCapsuleTraceSingle(const UWorld* World,
 	                                        const FVector& Start,
@@ -129,13 +126,25 @@ public:
 	                                       FLinearColor TraceColor,
 	                                       FLinearColor TraceHitColor,
 	                                       float DrawTime);
+	virtual void DrawDebugSphereTraceSingle_Local(const UWorld* World,
+								   const FVector& Start,
+								   const FVector& End,
+								   const FCollisionShape& CollisionShape,
+								   EDrawDebugTrace::Type DrawDebugType,
+								   bool bHit,
+								   const FHitResult& OutHit,
+								   FLinearColor TraceColor,
+								   FLinearColor TraceHitColor,
+								   float DrawTime) override;
+
 
 protected:
 	void DetectDebuggableCharactersInWorld();
 
 public:
 	UPROPERTY(BlueprintReadOnly, Category = "ALS|Debug")
-	TObjectPtr<AALSBaseCharacter> OwnerCharacter;
+	TObjectPtr<APawn> OwnerCharacter = nullptr;
+	IALSCharacterInterface* OwnerALSCharacter = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ALS|Debug")
 	bool bSlomo = false;
@@ -150,10 +159,19 @@ public:
 	TObjectPtr<USkeletalMesh> DebugSkeletalMesh = nullptr;
 
 	UPROPERTY(BlueprintReadOnly, Category = "ALS|Debug")
-	TArray<TObjectPtr<AALSBaseCharacter>> AvailableDebugCharacters;
-
+	TArray<TObjectPtr<AActor>> AvailableDebugCharacters;
 	UPROPERTY(BlueprintReadOnly, Category = "ALS|Debug")
-	TObjectPtr<AALSBaseCharacter> DebugFocusCharacter = nullptr;
+	TObjectPtr<AActor> DebugFocusCharacter = nullptr;
+
+protected:
+	UPROPERTY(BlueprintReadOnly, Category = "ALS|Debug")
+	bool bOverlayMenuOpen = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "ALS|Debug|Widget")
+	UUserWidget* ALSHUD = nullptr;
+	UPROPERTY(BlueprintReadOnly, Category = "ALS|Debug|Widget")
+	UUserWidget* OverlayStateSwitcher = nullptr;
+
 private:
 	static bool bDebugView;
 
@@ -167,8 +185,15 @@ private:
 
 	bool bDebugMeshVisible = false;
 
+	UPROPERTY(EditDefaultsOnly, Category = "ALS|Debug")
+	TSubclassOf<UUserWidget> ALSHUDClass = nullptr;
+	UPROPERTY(EditDefaultsOnly, Category = "ALS|Debug")
+	TSubclassOf<UUserWidget> OverlayStateSwitcherClass = nullptr;
+
 	UPROPERTY()
 	TObjectPtr<USkeletalMesh> DefaultSkeletalMesh = nullptr;
+
+	class IALSCameraBehaviorInterface* CameraBehavior = nullptr;
 
 	/// Stores the index, which is used to select the next focused debug ALSBaseCharacter.
 	/// If no characters where found during BeginPlay the value should be set to INDEX_NONE.

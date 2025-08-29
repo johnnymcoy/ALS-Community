@@ -5,13 +5,12 @@
 #include "Character/ALSPlayerCameraManager.h"
 #include "Engine/World.h"
 #include "Components/SkeletalMeshComponent.h"
-#include "Character/ALSBaseCharacter.h"
-#include "Character/ALSPlayerController.h"
-#include "Character/Animation/ALSPlayerCameraBehavior.h"
-#include "Components/ALSDebugComponent.h"
-
+#include "Interfaces/ALSCameraBehaviorInterface.h"
+#include "Interfaces/ALSCharacterInterface.h"
+#include "Interfaces/ALSDebugInterface.h"
 #include "Kismet/KismetMathLibrary.h"
-
+#include "Library/ALSCharacterStructLibrary.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 const FName NAME_CameraBehavior(TEXT("CameraBehavior"));
 const FName NAME_CameraOffset_X(TEXT("CameraOffset_X"));
@@ -37,38 +36,84 @@ AALSPlayerCameraManager::AALSPlayerCameraManager()
 	CameraBehavior = CreateDefaultSubobject<USkeletalMeshComponent>(NAME_CameraBehavior);
 	CameraBehavior->SetupAttachment(GetRootComponent());
 	CameraBehavior->bHiddenInGame = true;
+	PrimaryActorTick.bCanEverTick = false;
+}
+
+void AALSPlayerCameraManager::Possess(APawn* Pawn)
+{
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSPlayerCameraManager::Possess);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Camera_Manager);
+	check(Pawn);
+	if(ALSCharacterInterface == nullptr)
+	{
+		ALSCharacterInterface = Cast<IALSCharacterInterface>(Pawn);
+	}
+	if(DebugALSInterface == nullptr && Pawn != nullptr)
+	{
+		for(const auto& Component:Pawn->GetComponentsByInterface(UALSDebugInterface::StaticClass()))
+		{
+			if(Component == nullptr){continue;}
+			IALSDebugInterface* DebugComponent = Cast<IALSDebugInterface>(Component);
+			if(DebugComponent == nullptr){continue;}
+			DebugALSInterface = DebugComponent;
+			break;
+		}
+	}
+	if(ALSCharacterInterface == nullptr){return;}
+	// Update references in the Camera Behavior AnimBP.
+	IALSCameraBehaviorInterface* CastedBehv = Cast<IALSCameraBehaviorInterface>(CameraBehavior->GetAnimInstance());
+	if(CastedBehv != nullptr && ALSCharacterInterface != nullptr)
+	{
+		ALSCharacterInterface->SetCameraBehavior(CameraBehavior->GetAnimInstance());
+		CastedBehv->SetState(ALSCharacterInterface->GetMovementState());
+		CastedBehv->SetMovementAction(ALSCharacterInterface->GetMovementAction());
+		CastedBehv->SetRightShoulder(ALSCharacterInterface->IsRightShoulder());
+		CastedBehv->SetGait(ALSCharacterInterface->GetGait());
+		CastedBehv->SetRotationMode(ALSCharacterInterface->GetRotationMode());
+		CastedBehv->SetStance(ALSCharacterInterface->GetStance());
+		CastedBehv->SetViewMode(ALSCharacterInterface->GetViewMode());
+		CastedBehv->SetAimDownSights(ALSCharacterInterface->IsAimingDownSights());
+	}
+	const FVector& TPSLoc = ALSCharacterInterface->GetThirdPersonPivotTarget().GetLocation();
+	SetActorLocation(TPSLoc);
+	SmoothedPivotTarget.SetLocation(TPSLoc);
+}
+
+void AALSPlayerCameraManager::RequestDrawDebugTargets(const FVector& PivotTargetLocation)
+{
+	DrawDebugTargets(PivotTargetLocation);
 }
 
 void AALSPlayerCameraManager::OnPossess(AALSBaseCharacter* NewCharacter)
 {
-	TRACE_CPUPROFILER_EVENT_SCOPE(AALSPlayerCameraManager::OnPossess);
-	SCOPE_CYCLE_COUNTER(STAT_ALS_Camera_Manager);
-
-	// Set "Controlled Pawn" when Player Controller Possesses new character. (called from Player Controller)
-	check(NewCharacter);
-	ControlledCharacter = NewCharacter;
-
-	// Update references in the Camera Behavior AnimBP.
-	UALSPlayerCameraBehavior* CastedBehv = Cast<UALSPlayerCameraBehavior>(CameraBehavior->GetAnimInstance());
-	if (CastedBehv)
-	{
-		NewCharacter->SetCameraBehavior(CastedBehv);
-		CastedBehv->MovementState = NewCharacter->GetMovementState();
-		CastedBehv->MovementAction = NewCharacter->GetMovementAction();
-		CastedBehv->bRightShoulder = NewCharacter->IsRightShoulder();
-		CastedBehv->Gait = NewCharacter->GetGait();
-		CastedBehv->SetRotationMode(NewCharacter->GetRotationMode());
-		CastedBehv->Stance = NewCharacter->GetStance();
-		CastedBehv->ViewMode = NewCharacter->GetViewMode();
-		CastedBehv->bAimDownSights = NewCharacter->IsAimingDownSights();
-	}
-
-	// Initial position
-	const FVector& TPSLoc = ControlledCharacter->GetThirdPersonPivotTarget().GetLocation();
-	SetActorLocation(TPSLoc);
-	SmoothedPivotTarget.SetLocation(TPSLoc);
-
-	ALSDebugComponent = ControlledCharacter->FindComponentByClass<UALSDebugComponent>();
+	// TRACE_CPUPROFILER_EVENT_SCOPE(AALSPlayerCameraManager::OnPossess);
+	// SCOPE_CYCLE_COUNTER(STAT_ALS_Camera_Manager);
+	//
+	// // Set "Controlled Pawn" when Player Controller Possesses new character. (called from Player Controller)
+	// check(NewCharacter);
+	// ControlledCharacter = NewCharacter;
+	//
+	// // Update references in the Camera Behavior AnimBP.
+	// UALSPlayerCameraBehavior* CastedBehv = Cast<UALSPlayerCameraBehavior>(CameraBehavior->GetAnimInstance());
+	// if (CastedBehv)
+	// {
+	// 	NewCharacter->SetCameraBehavior(CastedBehv);
+	// 	// CastedBehv->MovementState = NewCharacter->GetMovementState();
+	// 	// CastedBehv->MovementAction = NewCharacter->GetMovementAction();
+	// 	// CastedBehv->bRightShoulder = NewCharacter->IsRightShoulder();
+	// 	// CastedBehv->Gait = NewCharacter->GetGait();
+	// 	// CastedBehv->SetRotationMode(NewCharacter->GetRotationMode());
+	// 	// CastedBehv->Stance = NewCharacter->GetStance();
+	// 	// CastedBehv->ViewMode = NewCharacter->GetViewMode();
+	// 	// CastedBehv->bAimDownSights = NewCharacter->IsAimingDownSights();
+	// }
+	//
+	// // Initial position
+	// // const FVector& TPSLoc = ControlledCharacter->GetThirdPersonPivotTarget().GetLocation();
+	// // SetActorLocation(TPSLoc);
+	// // SmoothedPivotTarget.SetLocation(TPSLoc);
+	// //
+	// // ALSDebugComponent = ControlledCharacter->FindComponentByClass<UALSDebugComponent>();
 }
 
 float AALSPlayerCameraManager::GetCameraBehaviorParam(FName CurveName) const
@@ -142,21 +187,21 @@ bool AALSPlayerCameraManager::CustomCameraBehavior(float DeltaTime, FVector& Loc
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSPlayerCameraManager::CustomCameraBehavior);
 	SCOPE_CYCLE_COUNTER(STAT_ALS_Camera_Manager);
 
-	if (!ControlledCharacter)
+	if (ALSCharacterInterface == nullptr)
 	{
 		return false;
 	}
 
 	// Step 1: Get Camera Parameters from CharacterBP via the Camera Interface
-	const FTransform& PivotTarget = ControlledCharacter->GetThirdPersonPivotTarget();
-	const FVector& FPTarget = ControlledCharacter->GetFirstPersonCameraTarget();
-	const FVector& ADSTarget = ControlledCharacter->GetAimDownSightCameraTarget();
+	const FTransform& PivotTarget = ALSCharacterInterface->GetThirdPersonPivotTarget();
+	const FVector& FPTarget = ALSCharacterInterface->GetFirstPersonCameraTarget();
+	const FVector& ADSTarget = ALSCharacterInterface->GetAimDownSightCameraTarget();
 
 	float TPFOV = 90.0f;
 	float FPFOV = 90.0f;
 	bool bRightShoulder = false;
-	const float ADSFOV = ControlledCharacter->GetAimDownSightFOV();
-	ControlledCharacter->GetCameraParameters(TPFOV, FPFOV, bRightShoulder);
+	const float ADSFOV = ALSCharacterInterface->GetAimDownSightFOV();
+	ALSCharacterInterface->GetCameraParameters(TPFOV, FPFOV, bRightShoulder);
 
 	// Step 2: Calculate Target Camera Rotation. Use the Control Rotation and interpolate for smooth camera rotation.
 	const FRotator& InterpResult = FMath::RInterpTo(GetCameraRotation(),
@@ -207,23 +252,23 @@ bool AALSPlayerCameraManager::CustomCameraBehavior(float DeltaTime, FVector& Loc
 	// Functions like the normal spring arm, but can allow for different trace origins regardless of the pivot
 	FVector TraceOrigin;
 	float TraceRadius;
-	ECollisionChannel TraceChannel = ControlledCharacter->GetThirdPersonTraceParams(TraceOrigin, TraceRadius);
+	ECollisionChannel TraceChannel = ALSCharacterInterface->GetThirdPersonTraceParams(TraceOrigin, TraceRadius);
 
 	UWorld* World = GetWorld();
 	check(World);
 
 	FCollisionQueryParams Params;
 	Params.AddIgnoredActor(this);
-	Params.AddIgnoredActor(ControlledCharacter);
+	Params.AddIgnoredActor(GetViewTargetPawn());
 
 	FHitResult HitResult;
 	const FCollisionShape SphereCollisionShape = FCollisionShape::MakeSphere(TraceRadius);
 	const bool bHit = World->SweepSingleByChannel(HitResult, TraceOrigin, TargetCameraLocation, FQuat::Identity,
 	                                              TraceChannel, SphereCollisionShape, Params);
 
-	if (ALSDebugComponent && ALSDebugComponent->GetShowTraces())
+	if(DebugALSInterface != nullptr && DebugALSInterface->GetShowTraces())
 	{
-		UALSDebugComponent::DrawDebugSphereTraceSingle(World,
+		DebugALSInterface->DrawDebugSphereTraceSingle_Local(World,
 		                                               TraceOrigin,
 		                                               TargetCameraLocation,
 		                                               SphereCollisionShape,
@@ -234,6 +279,20 @@ bool AALSPlayerCameraManager::CustomCameraBehavior(float DeltaTime, FVector& Loc
 		                                               FLinearColor::Green,
 		                                               5.0f);
 	}
+
+	// if (ALSDebugComponent && ALSDebugComponent->GetShowTraces())
+	// {
+	// 	UALSDebugComponent::DrawDebugSphereTraceSingle(World,
+	// 	                                               TraceOrigin,
+	// 	                                               TargetCameraLocation,
+	// 	                                               SphereCollisionShape,
+	// 	                                               EDrawDebugTrace::Type::ForOneFrame,
+	// 	                                               bHit,
+	// 	                                               HitResult,
+	// 	                                               FLinearColor::Red,
+	// 	                                               FLinearColor::Green,
+	// 	                                               5.0f);
+	// }
 
 	if (HitResult.IsValidBlockingHit())
 	{

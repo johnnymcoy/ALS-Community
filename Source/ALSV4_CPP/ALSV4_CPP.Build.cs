@@ -23,7 +23,8 @@ public class ALSV4_CPP : ModuleRules
 				"EnhancedInput", 
 				"BaseHelpers",
 				"Interaction",
-				"AnimationBudgetAllocator"
+				"AnimationBudgetAllocator",
+				"UMG"
 
 			});
 

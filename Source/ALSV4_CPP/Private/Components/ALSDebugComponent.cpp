@@ -4,11 +4,14 @@
 #include "Components/ALSDebugComponent.h"
 
 #include "CollisionShape.h"
-#include "Character/ALSBaseCharacter.h"
-#include "Character/ALSPlayerCameraManager.h"
-#include "Character/Animation/ALSPlayerCameraBehavior.h"
 #include "Kismet/GameplayStatics.h"
 #include "DrawDebugHelpers.h"
+#include "Blueprint/UserWidget.h"
+#include "BPLib/BaseHelpersBPLib.h"
+#include "Interfaces/ALSCharacterInterface.h"
+#include "Library/ALSCharacterStructLibrary.h"
+#include "Interfaces/ALSCameraBehaviorInterface.h"
+#include "Interfaces/ALSCameraInterface.h"
 
 bool UALSDebugComponent::bDebugView = false;
 bool UALSDebugComponent::bShowTraces = false;
@@ -21,6 +24,9 @@ DECLARE_CYCLE_STAT(TEXT("ALS Debug Component Tick"), STAT_ALS_Debug_Component_Ti
 
 UALSDebugComponent::UALSDebugComponent()
 {
+	ALSHUDClass = UBaseHelpersBPLib::GetDefaultWidgetBPClass("/ALSV4_CPP/AdvancedLocomotionV4/Blueprints/UI/ALS_HUD");
+	OverlayStateSwitcherClass = UBaseHelpersBPLib::GetDefaultWidgetBPClass("/ALSV4_CPP/AdvancedLocomotionV4/Blueprints/UI/OverlayStateSwitcher");
+	bAutoActivate = true;
 #if UE_BUILD_SHIPPING
 	PrimaryComponentTick.bCanEverTick = false;
 #else
@@ -38,7 +44,7 @@ void UALSDebugComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 #if !UE_BUILD_SHIPPING
-	if (!OwnerCharacter)
+	if (!OwnerCharacter || !OwnerALSCharacter)
 	{
 		return;
 	}
@@ -63,12 +69,13 @@ void UALSDebugComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 		DrawDebugSpheres();
 
 		APlayerController* Controller = Cast<APlayerController>(OwnerCharacter->GetController());
-		if (Controller)
+		if(Controller)
 		{
-			AALSPlayerCameraManager* CamManager = Cast<AALSPlayerCameraManager>(Controller->PlayerCameraManager);
-			if (CamManager)
+			// AALSPlayerCameraManager* CamManager = Cast<AALSPlayerCameraManager>(Controller->PlayerCameraManager);
+			IALSCameraInterface* CamManager = Cast<IALSCameraInterface>(Controller->PlayerCameraManager);
+			if(CamManager)
 			{
-				CamManager->DrawDebugTargets(OwnerCharacter->GetThirdPersonPivotTarget().GetLocation());
+				CamManager->RequestDrawDebugTargets(OwnerALSCharacter->GetThirdPersonPivotTarget().GetLocation());
 			}
 		}
 	}
@@ -131,14 +138,26 @@ void UALSDebugComponent::BeginPlay()
 	SCOPE_CYCLE_COUNTER(STAT_ALS_Debug_Component);
 
 	Super::BeginPlay();
-
-	OwnerCharacter = Cast<AALSBaseCharacter>(GetOwner());
+	OwnerCharacter = Cast<APawn>(GetOwner());
+	OwnerALSCharacter = Cast<IALSCharacterInterface>(GetOwner());
 	DebugFocusCharacter = OwnerCharacter;
-	if (OwnerCharacter)
+	if(OwnerCharacter)
 	{
 		SetDynamicMaterials();
 		SetResetColors();
 	}
+}
+
+void UALSDebugComponent::InitializePlayerController(APlayerController* Controller)
+{
+	if(Controller == nullptr || Controller->IsLocalController() == false || ALSHUDClass == nullptr){return;}
+	ALSHUD = nullptr;
+	ALSHUD = CreateWidget(Controller, ALSHUDClass);
+	if(ALSHUD != nullptr)
+	{
+		ALSHUD->AddToPlayerScreen();
+	}
+	OnPlayerControllerInitialized(Controller);
 }
 
 void UALSDebugComponent::DetectDebuggableCharactersInWorld()
@@ -148,20 +167,21 @@ void UALSDebugComponent::DetectDebuggableCharactersInWorld()
 
 	// Get all ALSBaseCharacter's, which are currently present to show them later in the ALS HUD for debugging purposes.
 	TArray<AActor*> AlsBaseCharacters;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AALSBaseCharacter::StaticClass(), AlsBaseCharacters);
-
+	UGameplayStatics::GetAllActorsWithInterface(GetWorld(), UALSCharacterInterface::StaticClass(), AlsBaseCharacters);
+	// UGameplayStatics::GetAllActorsOfClass(GetWorld(), AALSBaseCharacter::StaticClass(), AlsBaseCharacters);
 	AvailableDebugCharacters.Empty();
 	if (AlsBaseCharacters.Num() > 0)
 	{
 		AvailableDebugCharacters.Reserve(AlsBaseCharacters.Num());
-		for (AActor* Character : AlsBaseCharacters)
+		for(AActor* Character : AlsBaseCharacters)
 		{
-			if (AALSBaseCharacter* AlsBaseCharacter = Cast<AALSBaseCharacter>(Character))
+			if(Character == nullptr){continue;}
+			if(IALSCharacterInterface* AlsBaseCharacter = Cast<IALSCharacterInterface>(Character))
+			// if(AALSBaseCharacter* AlsBaseCharacter = Cast<AALSBaseCharacter>(Character))
 			{
-				AvailableDebugCharacters.Add(AlsBaseCharacter);
+				AvailableDebugCharacters.Add(Character);
 			}
 		}
-
 		FocusedDebugCharacterIndex = AvailableDebugCharacters.Find(DebugFocusCharacter);
 		if (FocusedDebugCharacterIndex == INDEX_NONE && AvailableDebugCharacters.Num() > 0)
 		{ // seems to be that this component was not attached to and AALSBaseCharacter,
@@ -198,44 +218,73 @@ void UALSDebugComponent::ToggleDebugView()
 
 	bDebugView = !bDebugView;
 
-	AALSPlayerCameraManager* CamManager = Cast<AALSPlayerCameraManager>(
-		UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0));
-	if (CamManager)
-	{
-		UALSPlayerCameraBehavior* CameraBehavior = Cast<UALSPlayerCameraBehavior>(
-			CamManager->CameraBehavior->GetAnimInstance());
+	// AALSPlayerCameraManager* CamManager = Cast<AALSPlayerCameraManager>(
+	// 	UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0));
+	// if (CamManager)
+	// {
+	// 	UALSPlayerCameraBehavior* CameraBehavior = Cast<UALSPlayerCameraBehavior>(
+	// 		CamManager->CameraBehavior->GetAnimInstance());
 		if (CameraBehavior)
 		{
-			CameraBehavior->bDebugView = bDebugView;
+			CameraBehavior->SetDebugView(bDebugView);
+		}
+	// }
+}
+
+void UALSDebugComponent::OpenOverlayMenu(bool bValue)
+{
+	bOverlayMenuOpen = bValue;
+	if(OverlayStateSwitcherClass == nullptr){UE_LOG(LogTemp, Warning, TEXT("ALSDebug:OpenOverlayMenu OverlayStateSwitcherClass null"));return;}
+	if(bValue)
+	{
+		ToggleGlobalTimeDilationLocal(0.35f);
+		OverlayStateSwitcher = CreateWidget(GetWorld(), OverlayStateSwitcherClass);
+		if(OverlayStateSwitcher != nullptr)
+		{
+			OverlayStateSwitcher->AddToPlayerScreen();
 		}
 	}
+	else
+	{
+		ToggleGlobalTimeDilationLocal(1.0f);
+		if(OverlayStateSwitcher != nullptr)
+		{
+			OverlayStateSwitcher->RemoveFromParent();
+			OverlayStateSwitcher = nullptr;
+		}
+	}
+	OnOpenOverlayMenu(bValue);
 }
 
-void UALSDebugComponent::OpenOverlayMenu_Implementation(bool bValue)
+void UALSDebugComponent::OverlayMenuCycle(bool bValue)
 {
-}
-
-void UALSDebugComponent::OverlayMenuCycle_Implementation(bool bValue)
-{
+	OnOverlayMenuCycle(bValue);
 }
 
 void UALSDebugComponent::ToggleDebugMesh()
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSDebugComponent::ToggleDebugMesh);
 	SCOPE_CYCLE_COUNTER(STAT_ALS_Debug_Component);
-
-	if (bDebugMeshVisible)
-	{
-		OwnerCharacter->SetVisibleMesh(DefaultSkeletalMesh);
-	}
-	else
-	{
-		DefaultSkeletalMesh = OwnerCharacter->GetMesh()->GetSkeletalMeshAsset();
-		OwnerCharacter->SetVisibleMesh(DebugSkeletalMesh);
-	}
-	bDebugMeshVisible = !bDebugMeshVisible;
+	//@TODO Toggle Between ALS mesh and Other Skeletal Meshes 
+	// if (bDebugMeshVisible)
+	// {
+	// 	OwnerCharacter->SetVisibleMesh(DefaultSkeletalMesh);
+	// }
+	// else
+	// {
+	// 	DefaultSkeletalMesh = OwnerCharacter->GetMesh()->GetSkeletalMeshAsset();
+	// 	OwnerCharacter->SetVisibleMesh(DebugSkeletalMesh);
+	// }
+	// bDebugMeshVisible = !bDebugMeshVisible;
 }
 
+
+void UALSDebugComponent::SetCameraBehavior(UObject* CameraBehaviorRef)
+{
+	if(CameraBehaviorRef == nullptr){return;}
+	CameraBehavior = Cast<IALSCameraBehaviorInterface>(CameraBehaviorRef);
+	if(CameraBehavior == nullptr){UE_LOG(LogTemp, Error, TEXT("SetCameraBehavior Camera Behavior failed"));}
+}
 
 /** Util for drawing result of single line trace  */
 void UALSDebugComponent::DrawDebugLineTraceSingle(const UWorld* World,
@@ -272,16 +321,23 @@ void UALSDebugComponent::DrawDebugLineTraceSingle(const UWorld* World,
 	}
 }
 
+void UALSDebugComponent::DrawDebugLineTraceSingle_Local(const UWorld* World, const FVector& Start, const FVector& End,
+	EDrawDebugTrace::Type DrawDebugType, bool bHit, const FHitResult& OutHit, FLinearColor TraceColor,
+	FLinearColor TraceHitColor, float DrawTime)
+{
+	DrawDebugLineTraceSingle(World, Start, End, DrawDebugType, bHit, OutHit, TraceColor, TraceHitColor, DrawTime);
+}
+
 void UALSDebugComponent::DrawDebugCapsuleTraceSingle(const UWorld* World,
-	                                                   const FVector& Start,
-	                                                   const FVector& End,
-	                                                   const FCollisionShape& CollisionShape,
-	                                                   EDrawDebugTrace::Type DrawDebugType,
-	                                                   bool bHit,
-	                                                   const FHitResult& OutHit,
-	                                                   FLinearColor TraceColor,
-	                                                   FLinearColor TraceHitColor,
-	                                                   float DrawTime)
+                                                     const FVector& Start,
+                                                     const FVector& End,
+                                                     const FCollisionShape& CollisionShape,
+                                                     EDrawDebugTrace::Type DrawDebugType,
+                                                     bool bHit,
+                                                     const FHitResult& OutHit,
+                                                     FLinearColor TraceColor,
+                                                     FLinearColor TraceHitColor,
+                                                     float DrawTime)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSDebugComponent::DrawDebugCapsuleTraceSingle);
 	SCOPE_CYCLE_COUNTER(STAT_ALS_Debug_Component);
@@ -366,4 +422,12 @@ void UALSDebugComponent::DrawDebugSphereTraceSingle(const UWorld* World,
 			DrawDebugSweptSphere(World, Start, End, CollisionShape.GetSphereRadius(), TraceColor.ToFColor(true), bPersistent, LifeTime);
 		}
 	}
+}
+
+void UALSDebugComponent::DrawDebugSphereTraceSingle_Local(const UWorld* World, const FVector& Start, const FVector& End,
+	const FCollisionShape& CollisionShape, EDrawDebugTrace::Type DrawDebugType, bool bHit, const FHitResult& OutHit,
+	FLinearColor TraceColor, FLinearColor TraceHitColor, float DrawTime)
+{
+	DrawDebugSphereTraceSingle(World, Start, End, CollisionShape, DrawDebugType, bHit, OutHit,
+	                                                     TraceColor, TraceHitColor, DrawTime);
 }

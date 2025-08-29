@@ -83,6 +83,8 @@ class ALSV4_CPP_API UALSCharacterMovementComponent : public UCharacterMovementCo
 	void Server_SetAllowedGait(EALSGait NewAllowedGait);
 
 
+	void CheckForJumps(const FVector& OldVelocity) const;
+
 	//~ IALSGravityMovementInterface Functions	~//
 
 	UPROPERTY(BlueprintAssignable, Category="Gravity")
@@ -203,6 +205,29 @@ class ALSV4_CPP_API UALSCharacterMovementComponent : public UCharacterMovementCo
 	virtual void SetAlignGravityToBase(bool bNewAlignGravityToBase);
 
 
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category= "ALS|Movement System|Jump")
+	float JumpCheckFrequency = 0.1f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category= "ALS|Movement System|Jump")
+	bool bShouldCheckForJumps = true;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category= "ALS|Movement System|Jump")
+	float VelocityAdditionalOffset = 25.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category= "ALS|Movement System|Jump")
+	float SphereStartOffset = 65.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category= "ALS|Movement System|Jump")
+	float VelocityClampMax = 100.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category= "ALS|Movement System|Jump")
+	float SphereTraceRadius = 45.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category= "ALS|Movement System|Jump")
+	bool bShouldCheckForDoors = true;
+	UPROPERTY(EditAnywhere, Category="ALS|Movement System|Jump")
+	float UpdateInterval = 0.2f; // 5 times per second
+	UPROPERTY(EditAnywhere, Category="ALS|Movement System|Jump")
+	bool bDebuggingMode = false;
+	UPROPERTY(EditAnywhere, Category="ALS|Movement System|Jump")
+	float DistanceChangeThreshold = 20.0f;
+private:
+	float TimeSinceLastUpdate = 0.0f;
 
 protected:
 	

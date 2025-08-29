@@ -9,6 +9,8 @@
 #include "Characters/InteractionPlayerController.h"
 #include "ALSPlayerController.generated.h"
 
+class IALSDebugInterface;
+class IALSCharacterInput;
 class AALSBaseCharacter;
 class UInputMappingContext;
 
@@ -35,12 +37,12 @@ protected:
 	void SetupCamera();
 
 	//@ TODO Remove These 
-	virtual void ForwardMovementAction(const FInputActionValue& Value) override;
-	virtual void RightMovementAction(const FInputActionValue& Value) override;
-	virtual void CameraUpAction(const FInputActionValue& Value) override;
-	virtual void CameraRightAction(const FInputActionValue& Value) override;
-	virtual void JumpAction(const FInputActionValue& Value) override;
-	virtual void AimAction(const FInputActionValue& Value) override;
+	// virtual void ForwardMovementAction(const FInputActionValue& Value) override;
+	// virtual void RightMovementAction(const FInputActionValue& Value) override;
+	// virtual void CameraUpAction(const FInputActionValue& Value) override;
+	// virtual void CameraRightAction(const FInputActionValue& Value) override;
+	// virtual void JumpAction(const FInputActionValue& Value) override;
+	// virtual void AimAction(const FInputActionValue& Value) override;
 
 	UFUNCTION()
 	void SprintAction(const FInputActionValue& Value);
@@ -103,12 +105,21 @@ protected:
 
 public:
 	/** Main character reference */
-	UPROPERTY(BlueprintReadOnly, Category = "ALS")
-	TObjectPtr<AALSBaseCharacter> PossessedCharacter = nullptr;
+	// UPROPERTY(BlueprintReadOnly, Category = "ALS")
+	// TObjectPtr<AALSBaseCharacter> PossessedCharacter = nullptr;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "ALS|Input")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Controller|Input|ALS")
 	TObjectPtr<UInputMappingContext> DefaultInputMappingContext = nullptr;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "ALS|Input")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Controller|Input|ALS")
 	TObjectPtr<UInputMappingContext> DebugInputMappingContext = nullptr;
+
+private:
+	IALSCharacterInput* GetALSCharacterInput();
+	IALSDebugInterface* GetALSDebugInterface();
+
+	IALSCharacterInput* CharacterALSInterface = nullptr;
+	IALSDebugInterface* DebugALSInterface = nullptr;
+
+
 };

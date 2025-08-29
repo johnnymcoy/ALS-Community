@@ -36,9 +36,9 @@ public:
 
 	virtual ECollisionChannel GetThirdPersonTraceParams(FVector& TraceOrigin, float& TraceRadius) override;
 
-	virtual FTransform GetThirdPersonPivotTarget() override;
+	virtual FTransform GetThirdPersonPivotTarget() const override;
 
-	virtual FVector GetFirstPersonCameraTarget() override;
+	virtual FVector GetFirstPersonCameraTarget() const override;
 
 protected:
 	virtual void Tick(float DeltaTime) override;
