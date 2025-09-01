@@ -9,6 +9,7 @@
 #include "Characters/InteractionPlayerController.h"
 #include "ALSPlayerController.generated.h"
 
+class IALSCharacterInterface;
 class IALSDebugInterface;
 class IALSCharacterInput;
 class AALSBaseCharacter;
@@ -23,15 +24,18 @@ class ALSV4_CPP_API AALSPlayerController : public AInteractionPlayerController
 	GENERATED_BODY()
 
 public:
-	virtual void OnPossess(APawn* NewPawn) override;
-
-	virtual void OnRep_Pawn() override;
-
-	virtual void SetupInputComponent() override;
-
-	virtual void BindActions(UInputMappingContext* Context) override;
+	AALSPlayerController();
 
 protected:
+	virtual void OnPossess(APawn* NewPawn) override;
+	virtual void OnUnPossess() override;
+
+	virtual void SetupInputComponent() override;
+	virtual void BindActions(UInputMappingContext* Context) override;
+
+	virtual bool GetIsControllerSetupComplete() const override;
+	virtual void OnRep_Pawn() override;
+
 	virtual void SetupInputs() override;
 
 	void SetupCamera();
@@ -104,22 +108,29 @@ protected:
 	void DebugOverlayMenuCycleAction(const FInputActionValue& Value);
 
 public:
-	/** Main character reference */
-	// UPROPERTY(BlueprintReadOnly, Category = "ALS")
-	// TObjectPtr<AALSBaseCharacter> PossessedCharacter = nullptr;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Controller|Input|ALS")
 	TObjectPtr<UInputMappingContext> DefaultInputMappingContext = nullptr;
-
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Controller|Input|ALS")
 	TObjectPtr<UInputMappingContext> DebugInputMappingContext = nullptr;
+
+protected:
+	IALSCharacterInterface* GetALSCharacterInterface();
+	IALSCharacterInterface* GetALSCharacterInterface() const;
+
+
+	//~ Gets what should be Currently used, Considers Aiming, and Overlay State	//
+	virtual float CalculateCameraSensitivity(const float CameraInput) const override;
+
+	
 
 private:
 	IALSCharacterInput* GetALSCharacterInput();
 	IALSDebugInterface* GetALSDebugInterface();
 
-	IALSCharacterInput* CharacterALSInterface = nullptr;
+	IALSCharacterInput* ALSCharacterInput = nullptr;
 	IALSDebugInterface* DebugALSInterface = nullptr;
+	IALSCharacterInterface* ALSCharacterInterface = nullptr;
 
 
 };

@@ -5,23 +5,35 @@
 #include "Character/ALSPlayerController.h"
 // #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
-// #include "InputMappingContext.h"
+#include "InputMappingContext.h"
 #include "Engine/LocalPlayer.h"
 #include "Interfaces/ALSCameraInterface.h"
 #include "Interfaces/ALSCharacterInput.h"
+#include "Interfaces/ALSCharacterInterface.h"
 #include "Interfaces/ALSDebugInterface.h"
+#include "Library/ALSCharacterEnumLibrary.h"
+
+AALSPlayerController::AALSPlayerController()
+{
+	ConstructorHelpers::FObjectFinder<UInputMappingContext> const DefaultMappingBP(TEXT("/ALSV4_CPP/AdvancedLocomotionV4/Blueprints/Input/IMC_Default"));
+	if (!ensure(DefaultMappingBP.Object != nullptr)) return;
+	DefaultInputMappingContext = DefaultMappingBP.Object;
+	ConstructorHelpers::FObjectFinder<UInputMappingContext> const DebugMappingBP(TEXT("/ALSV4_CPP/AdvancedLocomotionV4/Blueprints/Input/IMC_Debug"));
+	if (!ensure(DebugMappingBP.Object != nullptr)) return;
+	DebugInputMappingContext = DebugMappingBP.Object;
+
+}
 
 void AALSPlayerController::OnPossess(APawn* NewPawn)
 {
 	Super::OnPossess(NewPawn);
-	CharacterALSInterface = nullptr;
-	DebugALSInterface = nullptr;
 	if (!IsRunningDedicatedServer())
 	{
 		// Servers want to setup camera only in listen servers.
 		SetupCamera();
 	}
 	GetALSCharacterInput();
+	GetALSCharacterInterface();
 	GetALSDebugInterface();
 	if(GetALSDebugInterface() != nullptr)
 	{
@@ -29,12 +41,19 @@ void AALSPlayerController::OnPossess(APawn* NewPawn)
 	}
 }
 
+void AALSPlayerController::OnUnPossess()
+{
+	Super::OnUnPossess();
+	ALSCharacterInput = nullptr;
+	DebugALSInterface = nullptr;
+	ALSCharacterInterface = nullptr;
+}
+
 void AALSPlayerController::OnRep_Pawn()
 {
 	Super::OnRep_Pawn();
-	CharacterALSInterface = nullptr;
-	DebugALSInterface = nullptr;
 	GetALSCharacterInput();
+	GetALSCharacterInterface();
 	GetALSDebugInterface();
 	SetupCamera();
 	// SetupInputs();
@@ -280,15 +299,88 @@ void AALSPlayerController::DebugOverlayMenuCycleAction(const FInputActionValue& 
 	}
 }
 
+IALSCharacterInterface* AALSPlayerController::GetALSCharacterInterface()
+{
+	// SCOPE_CYCLE_COUNTER(STAT_ALS_CHARACTER);
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSPlayerController::GetALSCharacterInterface);
+	if(ALSCharacterInterface == nullptr)
+	{
+		ALSCharacterInterface = Cast<IALSCharacterInterface>(GetPawn());
+	}
+	return ALSCharacterInterface;
+
+}
+
+IALSCharacterInterface* AALSPlayerController::GetALSCharacterInterface() const
+{
+	return ALSCharacterInterface;
+}
+
+bool AALSPlayerController::GetIsControllerSetupComplete() const
+{
+	return (Super::GetIsControllerSetupComplete()) && (ALSCharacterInput != nullptr) && (ALSCharacterInterface != nullptr);
+}
+
+float AALSPlayerController::CalculateCameraSensitivity(const float CameraInput) const
+{
+	float CameraSpeed = Super::CalculateCameraSensitivity(CameraInput);
+	if(GetALSCharacterInterface() == nullptr)
+	{
+		switch(GetALSCharacterInterface()->GetOverlayState())
+		{
+		case EALSOverlayState::Default:
+		case EALSOverlayState::Masculine:
+		case EALSOverlayState::Feminine:
+		case EALSOverlayState::Injured:
+		case EALSOverlayState::HandsTied:
+		case EALSOverlayState::Torch:
+		case EALSOverlayState::Binoculars:
+		case EALSOverlayState::Box:
+		case EALSOverlayState::Barrel:
+			break;
+		case EALSOverlayState::Rifle:
+			//@TODO Add these back in ?
+			// CameraSpeed *= CameraSensitivityRifleMultiplier;
+			break;
+		case EALSOverlayState::PistolOneHanded:
+			// CameraSpeed *= CameraSensitivityOneHandPistolMultiplier;
+			break;
+		case EALSOverlayState::PistolTwoHanded:
+			// CameraSpeed *= CameraSensitivityTwoHandPistolMultiplier;
+			break;
+		case EALSOverlayState::Shotgun:
+			// CameraSpeed *= CameraSensitivityShotgunMultiplier;
+			break;
+		case EALSOverlayState::Sniper:
+			// CameraSpeed *= CameraSensitivitySniperMultiplier;
+			break;
+		case EALSOverlayState::Launcher:
+			// CameraSpeed *= CameraSensitivityLauncherMultiplier;
+			break;
+		case EALSOverlayState::Sword:
+		case EALSOverlayState::SwordShield:
+		case EALSOverlayState::Knife:
+		case EALSOverlayState::Chainsaw:
+		case EALSOverlayState::Melee:
+			// CameraSpeed *= CameraSensitivityMeleeMultiplier;
+			break;
+		case EALSOverlayState::Bow:
+			// CameraSpeed *= CameraSensitivityBowMultiplier;
+			break;
+		}
+	}
+	return CameraSpeed;
+}
+
 IALSCharacterInput* AALSPlayerController::GetALSCharacterInput()
 {
 	// SCOPE_CYCLE_COUNTER(STAT_ALS_CHARACTER);
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSPlayerController::GetALSCharacterInput);
-	if(CharacterALSInterface == nullptr)
+	if(ALSCharacterInput == nullptr)
 	{
-		CharacterALSInterface = Cast<IALSCharacterInput>(GetPawn());
+		ALSCharacterInput = Cast<IALSCharacterInput>(GetPawn());
 	}
-	return CharacterALSInterface;
+	return ALSCharacterInput;
 }
 
 IALSDebugInterface* AALSPlayerController::GetALSDebugInterface()

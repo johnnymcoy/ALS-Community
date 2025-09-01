@@ -52,6 +52,8 @@ AALSBaseCharacter::AALSBaseCharacter(const FObjectInitializer& ObjectInitializer
 	UDataTable* MovementDT =  UBaseHelpersBPLib::GetDefaultDataTable("/ALSV4_CPP/AdvancedLocomotionV4/Data/DataTables/MovementModelTable");
 	MovementModel.DataTable = MovementDT;
 	MovementModel.RowName = FName("Normal");
+	bRightShoulder = true;
+	bRagdollOnLand = true;
 }
 
 FVector AALSBaseCharacter::GetLeftHandGoal() const

@@ -51,6 +51,10 @@ public:
 		return MyCharacterMovementComponent;
 	}
 
+	UFUNCTION(BlueprintPure, Category = "Player")
+	bool IsCrouching() const{return Stance == EALSStance::Crouching;};
+
+
 	//~~	IALSCharacterInterface ~~//
 	virtual FVector GetLeftHandGoal() const override;
 	virtual FVector GetRightHandGoal() const override;

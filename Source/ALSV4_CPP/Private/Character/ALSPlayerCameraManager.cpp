@@ -48,7 +48,7 @@ void AALSPlayerCameraManager::Possess(APawn* Pawn)
 	{
 		ALSCharacterInterface = Cast<IALSCharacterInterface>(Pawn);
 	}
-	if(DebugALSInterface == nullptr && Pawn != nullptr)
+	if(Pawn != nullptr)
 	{
 		for(const auto& Component:Pawn->GetComponentsByInterface(UALSDebugInterface::StaticClass()))
 		{
@@ -188,6 +188,10 @@ bool AALSPlayerCameraManager::CustomCameraBehavior(float DeltaTime, FVector& Loc
 	SCOPE_CYCLE_COUNTER(STAT_ALS_Camera_Manager);
 
 	if (ALSCharacterInterface == nullptr)
+	{
+		return false;
+	}
+	if(DebugALSInterface == nullptr)
 	{
 		return false;
 	}
