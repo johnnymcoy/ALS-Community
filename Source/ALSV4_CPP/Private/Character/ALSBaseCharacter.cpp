@@ -49,11 +49,13 @@ AALSBaseCharacter::AALSBaseCharacter(const FObjectInitializer& ObjectInitializer
 
 	SetupCapsuleComponent();	
 	SetupMeshComponent();
+	SetupCharacterMovement();
 	UDataTable* MovementDT =  UBaseHelpersBPLib::GetDefaultDataTable("/ALSV4_CPP/AdvancedLocomotionV4/Data/DataTables/MovementModelTable");
 	MovementModel.DataTable = MovementDT;
 	MovementModel.RowName = FName("Normal");
 	bRightShoulder = true;
 	bRagdollOnLand = true;
+	Tags.AddUnique(TEXT("ALS_Character"));
 }
 
 FVector AALSBaseCharacter::GetLeftHandGoal() const
@@ -2179,7 +2181,33 @@ void AALSBaseCharacter::SetupMeshComponent() const
 	GetMesh()->SetCollisionResponseToChannel(ECC_GameTraceChannel5, ECR_Block);		// Interactable
 	GetMesh()->SetCollisionResponseToChannel(ECC_GameTraceChannel5, ECR_Block);		// Characters
 	GetMesh()->SetGenerateOverlapEvents(true);
+	GetMesh()->bUpdateJointsFromAnimation = true;
 	//@TODO if Using only one Skeleton, Remove this	//
 	GetMesh()->bUpdateMeshWhenKinematic = true;
 	GetMesh()->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
+	ConstructorHelpers::FObjectFinder<USkeletalMesh> const AnimManBP(TEXT("/ALSV4_CPP/AdvancedLocomotionV4/CharacterAssets/MannequinSkeleton/Meshes/AnimMan"));
+	if (!ensure(AnimManBP.Object != nullptr)) return;
+	GetMesh()->SetSkeletalMeshAsset(AnimManBP.Object);
+	ConstructorHelpers::FClassFinder<UAnimInstance> const AnimInstanceBP(TEXT("/ALSV4_CPP/AdvancedLocomotionV4/CharacterAssets/MannequinSkeleton/ALS_AnimBP"));
+	if (!ensure(AnimInstanceBP.Class != nullptr)) return;
+	GetMesh()->SetAnimClass(AnimInstanceBP.Class);
+}
+
+void AALSBaseCharacter::SetupCharacterMovement()
+{
+	MyCharacterMovementComponent = Cast<UALSCharacterMovementComponent>(Super::GetMovementComponent());
+	if(MyCharacterMovementComponent == nullptr){LogDebugError("AALSBaseCharacter::SetupCharacterMovement FAILED");return;}
+	MyCharacterMovementComponent->MaxAcceleration = 1500.0f;
+	MyCharacterMovementComponent->BrakingFrictionFactor = 0.0f;
+	MyCharacterMovementComponent->CrouchedHalfHeight = 60.0f;
+	MyCharacterMovementComponent->bRunPhysicsWithNoController = true;
+	MyCharacterMovementComponent->MinAnalogWalkSpeed = 25.0f;
+	MyCharacterMovementComponent->bCanWalkOffLedgesWhenCrouching = true;
+	MyCharacterMovementComponent->PerchRadiusThreshold = 20.0f;
+	MyCharacterMovementComponent->PerchAdditionalHeight = 0.0f;
+	MyCharacterMovementComponent->LedgeCheckThreshold = 0.0f;
+	MyCharacterMovementComponent->AirControl = 0.15f;
+	MyCharacterMovementComponent->BrakingDecelerationFlying = 1000.0f;
+	MyCharacterMovementComponent->NavAgentProps.bCanFly = true;
+
 }

@@ -81,5 +81,8 @@ protected:
 
 private:
 	IALSCharacterInterface* ALSCharacterInterface = nullptr;
-	class IALSDebugInterface* DebugALSInterface = nullptr;
+	class IALSDebugInterface* GetDebugInterface() const;
+	UPROPERTY(Transient)
+	UActorComponent* DebugComponent = nullptr;
+	// class IALSDebugInterface* DebugALSInterface = nullptr;
 };

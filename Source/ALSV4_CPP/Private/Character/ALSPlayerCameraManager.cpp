@@ -53,9 +53,9 @@ void AALSPlayerCameraManager::Possess(APawn* Pawn)
 		for(const auto& Component:Pawn->GetComponentsByInterface(UALSDebugInterface::StaticClass()))
 		{
 			if(Component == nullptr){continue;}
-			IALSDebugInterface* DebugComponent = Cast<IALSDebugInterface>(Component);
-			if(DebugComponent == nullptr){continue;}
-			DebugALSInterface = DebugComponent;
+			const IALSDebugInterface* DebugComponentInterface = Cast<IALSDebugInterface>(Component);
+			if(DebugComponentInterface == nullptr){continue;}
+			DebugComponent = Component;
 			break;
 		}
 	}
@@ -191,10 +191,6 @@ bool AALSPlayerCameraManager::CustomCameraBehavior(float DeltaTime, FVector& Loc
 	{
 		return false;
 	}
-	if(DebugALSInterface == nullptr)
-	{
-		return false;
-	}
 
 	// Step 1: Get Camera Parameters from CharacterBP via the Camera Interface
 	const FTransform& PivotTarget = ALSCharacterInterface->GetThirdPersonPivotTarget();
@@ -270,9 +266,9 @@ bool AALSPlayerCameraManager::CustomCameraBehavior(float DeltaTime, FVector& Loc
 	const bool bHit = World->SweepSingleByChannel(HitResult, TraceOrigin, TargetCameraLocation, FQuat::Identity,
 	                                              TraceChannel, SphereCollisionShape, Params);
 
-	if(DebugALSInterface != nullptr && DebugALSInterface->GetShowTraces())
+	if(GetDebugInterface() != nullptr && GetDebugInterface()->GetShowTraces())
 	{
-		DebugALSInterface->DrawDebugSphereTraceSingle_Local(World,
+		GetDebugInterface()->DrawDebugSphereTraceSingle_Local(World,
 		                                               TraceOrigin,
 		                                               TargetCameraLocation,
 		                                               SphereCollisionShape,
@@ -333,4 +329,15 @@ bool AALSPlayerCameraManager::CustomCameraBehavior(float DeltaTime, FVector& Loc
 	FOV = FMath::Lerp(TPFOV, CalculateFPFOV, GetCameraBehaviorParam(NAME_Weight_FirstPerson));
 
 	return true;
+}
+
+IALSDebugInterface* AALSPlayerCameraManager::GetDebugInterface() const
+{
+	if(DebugComponent != nullptr)
+	{
+		IALSDebugInterface* DebugInterface = Cast<IALSDebugInterface>(DebugComponent);
+		if(DebugInterface == nullptr){return nullptr;}
+		return DebugInterface;
+	}
+	return nullptr;
 }

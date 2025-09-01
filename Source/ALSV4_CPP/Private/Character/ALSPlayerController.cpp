@@ -324,7 +324,7 @@ bool AALSPlayerController::GetIsControllerSetupComplete() const
 float AALSPlayerController::CalculateCameraSensitivity(const float CameraInput) const
 {
 	float CameraSpeed = Super::CalculateCameraSensitivity(CameraInput);
-	if(GetALSCharacterInterface() == nullptr)
+	if(GetALSCharacterInterface() != nullptr)
 	{
 		switch(GetALSCharacterInterface()->GetOverlayState())
 		{

@@ -709,4 +709,6 @@ private:
 
 	void SetupCapsuleComponent() const;
 	void SetupMeshComponent() const;
+	void SetupCharacterMovement();
+
 };
