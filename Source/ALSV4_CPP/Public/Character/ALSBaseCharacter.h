@@ -486,7 +486,7 @@ protected:
 
 	UPROPERTY(Category = "ALS|Input", BlueprintReadOnly)
 	bool bSprintHeld = false;
-
+	
 	/** Camera System */
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "ALS|Camera System")

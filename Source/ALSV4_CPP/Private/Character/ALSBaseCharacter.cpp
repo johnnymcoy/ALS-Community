@@ -318,6 +318,7 @@ void AALSBaseCharacter::RagdollStart()
 
 	// Step 1: Clear the Character Movement Mode and set the Movement State to Ragdoll
 	GetCharacterMovement()->SetMovementMode(MOVE_None);
+	// GetCharacterMovement()->bEnablePhysicsInteraction = false;
 	// @ BUG this Causes the Ragdoll glitch
 	if(bSetMovementStateRagdoll)
 	{
@@ -329,6 +330,13 @@ void AALSBaseCharacter::RagdollStart()
 	GetMesh()->SetCollisionObjectType(ECC_PhysicsBody);
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	GetMesh()->SetAllBodiesBelowSimulatePhysics(NAME_Pelvis, true, true);
+	// Disable collision on the non-sim root body so it never receives hits/impulses
+	// if(FBodyInstance* RootBI = GetMesh()->GetBodyInstance(NAME_Root))
+	// {
+	// 	// RootBI->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	// 	RootBI->SetResponseToAllChannels(ECR_Ignore);
+	// 	RootBI->bNotifyRigidBodyCollision = false; // optional: no hit events
+	// }
 
 	// Step 3: Stop any active montages.
 	if (GetMesh()->GetAnimInstance())
@@ -355,7 +363,7 @@ void AALSBaseCharacter::RagdollEnd()
 	}
 
 	GetMesh()->bEnableUpdateRateOptimizations = bPreRagdollURO;
-
+	// GetCharacterMovement()->bEnablePhysicsInteraction = true;
 	// Revert back to default settings
 	MyCharacterMovementComponent->bIgnoreClientMovementErrorChecksAndCorrection = 0;
 	GetMesh()->bOnlyAllowAutonomousTickPose = false;
@@ -388,6 +396,13 @@ void AALSBaseCharacter::RagdollEnd()
 	GetMesh()->SetCollisionObjectType(ECC_Pawn);
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	GetMesh()->SetAllBodiesSimulatePhysics(false);
+	// If you changed the root at start and want to restore:
+	// if (FBodyInstance* RootBI = GetMesh()->GetBodyInstance(NAME_Root))
+	// {
+	// 	// RootBI->SetCollisionEnabled(ECollisionEnabled::); // keep off if you never want it
+	// 	RootBI->SetResponseToAllChannels(ECR_Ignore);
+	// 	RootBI->bNotifyRigidBodyCollision = false;
+	// }
 
 	if (RagdollStateChangedDelegate.IsBound())
 	{
@@ -2096,7 +2111,7 @@ void AALSBaseCharacter::ReplicatedRagdollStart()
 	}
 }
 
-void AALSBaseCharacter::ReplicatedRagdollEnd()
+void AALSBaseCharacter::ReplicatedRagdollEnd()	
 {
 	if (HasAuthority())
 	{
@@ -2161,25 +2176,27 @@ void AALSBaseCharacter::SetupCapsuleComponent() const
 	if(GetCapsuleComponent() == nullptr){UE_LOG(LogTemp, Error, TEXT("AALSBaseCharacter::SetupCapsuleComponent FAILED"));return;}
 	GetCapsuleComponent()->SetCapsuleHalfHeight(90.0f);
 	GetCapsuleComponent()->SetCapsuleRadius(35.0f);
-	GetCapsuleComponent()->SetAreaClassOverride(UNavArea_Obstacle::StaticClass());\
-	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Visibility, ECR_Ignore);
-	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
-	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_GameTraceChannel3, ECR_Ignore);	// Climable
-	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_GameTraceChannel4, ECR_Ignore);	// WeaponTraceChannel
-	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_GameTraceChannel5, ECR_Overlap);	// Interactable
-	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_GameTraceChannel6, ECR_Ignore);	// Characters
+	GetCapsuleComponent()->SetAreaClassOverride(UNavArea_Obstacle::StaticClass());
+	GetCapsuleComponent()->SetCollisionProfileName("ALS_Character");
+	// GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Visibility, ECR_Ignore);
+	// GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
+	// GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_GameTraceChannel3, ECR_Ignore);	// Climable
+	// GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_GameTraceChannel4, ECR_Ignore);	// WeaponTraceChannel
+	// GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_GameTraceChannel5, ECR_Overlap);	// Interactable
+	// GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_GameTraceChannel6, ECR_Ignore);	// Characters
 }
 
 void AALSBaseCharacter::SetupMeshComponent() const
 {
 	if(GetMesh() == nullptr){UE_LOG(LogTemp, Error, TEXT("AALSBaseCharacter::SetupMeshComponent FAILED"));return;}
 	GetMesh()->SetWorldTransform(FTransform(FRotator(0.0f,-90.0f,0.0f), FVector(0.0f,0.0f,-92.0f)));
-	GetMesh()->SetCollisionResponseToChannel(ECC_Visibility, ECR_Ignore);
-	GetMesh()->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
-	GetMesh()->SetCollisionResponseToChannel(ECC_GameTraceChannel3, ECR_Ignore);	// Climable
-	GetMesh()->SetCollisionResponseToChannel(ECC_GameTraceChannel4, ECR_Block);		// WeaponTraceChannel
-	GetMesh()->SetCollisionResponseToChannel(ECC_GameTraceChannel5, ECR_Block);		// Interactable
-	GetMesh()->SetCollisionResponseToChannel(ECC_GameTraceChannel5, ECR_Block);		// Characters
+	GetMesh()->SetCollisionProfileName("ALS_Mesh");
+	// GetMesh()->SetCollisionResponseToChannel(ECC_Visibility, ECR_Ignore);
+	// GetMesh()->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
+	// GetMesh()->SetCollisionResponseToChannel(ECC_GameTraceChannel3, ECR_Ignore);	// Climable
+	// GetMesh()->SetCollisionResponseToChannel(ECC_GameTraceChannel4, ECR_Block);		// WeaponTraceChannel
+	// GetMesh()->SetCollisionResponseToChannel(ECC_GameTraceChannel5, ECR_Block);		// Interactable
+	// GetMesh()->SetCollisionResponseToChannel(ECC_GameTraceChannel5, ECR_Block);		// Characters
 	GetMesh()->SetGenerateOverlapEvents(true);
 	GetMesh()->bUpdateJointsFromAnimation = true;
 	//@TODO if Using only one Skeleton, Remove this	//
@@ -2199,7 +2216,7 @@ void AALSBaseCharacter::SetupCharacterMovement()
 	if(MyCharacterMovementComponent == nullptr){LogDebugError("AALSBaseCharacter::SetupCharacterMovement FAILED");return;}
 	MyCharacterMovementComponent->MaxAcceleration = 1500.0f;
 	MyCharacterMovementComponent->BrakingFrictionFactor = 0.0f;
-	MyCharacterMovementComponent->CrouchedHalfHeight = 60.0f;
+	MyCharacterMovementComponent->SetCrouchedHalfHeight(60.0f);
 	MyCharacterMovementComponent->bRunPhysicsWithNoController = true;
 	MyCharacterMovementComponent->MinAnalogWalkSpeed = 25.0f;
 	MyCharacterMovementComponent->bCanWalkOffLedgesWhenCrouching = true;
