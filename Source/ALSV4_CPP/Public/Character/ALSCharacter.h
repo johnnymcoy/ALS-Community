@@ -34,11 +34,6 @@ public:
 
 	virtual void RagdollEnd() override;
 
-	virtual ECollisionChannel GetThirdPersonTraceParams(FVector& TraceOrigin, float& TraceRadius) override;
-
-	virtual FTransform GetThirdPersonPivotTarget() const override;
-
-	virtual FVector GetFirstPersonCameraTarget() const override;
 
 protected:
 	virtual void Tick(float DeltaTime) override;

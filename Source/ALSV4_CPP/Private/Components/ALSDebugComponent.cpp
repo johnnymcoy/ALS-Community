@@ -12,6 +12,8 @@
 #include "Library/ALSCharacterStructLibrary.h"
 #include "Interfaces/ALSCameraBehaviorInterface.h"
 #include "Interfaces/ALSCameraInterface.h"
+#include "Interfaces/ALSDebugHUD.h"
+#include "Interfaces/CustomCharacter.h"
 
 bool UALSDebugComponent::bDebugView = false;
 bool UALSDebugComponent::bShowTraces = false;
@@ -128,7 +130,6 @@ void UALSDebugComponent::FocusedDebugCharacterCycle(bool bValue)
 			FocusedDebugCharacterIndex = AvailableDebugCharacters.Num() - 1;
 		}
 	}
-
 	DebugFocusCharacter = AvailableDebugCharacters[FocusedDebugCharacterIndex];
 }
 
@@ -152,10 +153,13 @@ void UALSDebugComponent::InitializePlayerController(APlayerController* Controlle
 {
 	if(Controller == nullptr || Controller->IsLocalController() == false || ALSHUDClass == nullptr){return;}
 	ALSHUD = nullptr;
-	ALSHUD = CreateWidget(Controller, ALSHUDClass);
-	if(ALSHUD != nullptr)
+	if(bCreateDebugHUD)
 	{
-		ALSHUD->AddToPlayerScreen();
+		ALSHUD = CreateWidget(Controller, ALSHUDClass);
+		if(ALSHUD != nullptr)
+		{
+			ALSHUD->AddToPlayerScreen();
+		}
 	}
 	OnPlayerControllerInitialized(Controller);
 }
@@ -191,6 +195,12 @@ void UALSDebugComponent::DetectDebuggableCharactersInWorld()
 	}
 }
 
+IALSDebugHUD* UALSDebugComponent::GetDebugHUD() const
+{
+	if(ALSHUD == nullptr){return nullptr;}
+	return Cast<IALSDebugHUD>(ALSHUD);
+}
+
 void UALSDebugComponent::ToggleGlobalTimeDilationLocal(float TimeDilation)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSDebugComponent::ToggleGlobalTimeDilationLocal);
@@ -215,20 +225,11 @@ void UALSDebugComponent::ToggleDebugView()
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSDebugComponent::ToggleDebugView);
 	SCOPE_CYCLE_COUNTER(STAT_ALS_Debug_Component);
-
 	bDebugView = !bDebugView;
-
-	// AALSPlayerCameraManager* CamManager = Cast<AALSPlayerCameraManager>(
-	// 	UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0));
-	// if (CamManager)
-	// {
-	// 	UALSPlayerCameraBehavior* CameraBehavior = Cast<UALSPlayerCameraBehavior>(
-	// 		CamManager->CameraBehavior->GetAnimInstance());
-		if (CameraBehavior)
-		{
-			CameraBehavior->SetDebugView(bDebugView);
-		}
-	// }
+	if(CameraBehavior)
+	{
+		CameraBehavior->SetDebugView(bDebugView);
+	}
 }
 
 void UALSDebugComponent::OpenOverlayMenu(bool bValue)
@@ -265,17 +266,12 @@ void UALSDebugComponent::ToggleDebugMesh()
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(UALSDebugComponent::ToggleDebugMesh);
 	SCOPE_CYCLE_COUNTER(STAT_ALS_Debug_Component);
-	//@TODO Toggle Between ALS mesh and Other Skeletal Meshes 
-	// if (bDebugMeshVisible)
-	// {
-	// 	OwnerCharacter->SetVisibleMesh(DefaultSkeletalMesh);
-	// }
-	// else
-	// {
-	// 	DefaultSkeletalMesh = OwnerCharacter->GetMesh()->GetSkeletalMeshAsset();
-	// 	OwnerCharacter->SetVisibleMesh(DebugSkeletalMesh);
-	// }
-	// bDebugMeshVisible = !bDebugMeshVisible;
+	//@TODO Toggle Between ALS mesh and Other Skeletal Meshes
+	if(OwnerCharacter == nullptr){return;}
+	const ICharacterBaseInterface* BaseCharacter = Cast<ICharacterBaseInterface>(OwnerCharacter);
+	if(BaseCharacter == nullptr){return;}
+	BaseCharacter->GetCharacterMesh()->SetVisibility(bDebugMeshVisible);
+	bDebugMeshVisible = !bDebugMeshVisible;
 }
 
 

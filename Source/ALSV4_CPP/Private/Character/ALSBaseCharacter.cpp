@@ -50,6 +50,8 @@ AALSBaseCharacter::AALSBaseCharacter(const FObjectInitializer& ObjectInitializer
 	SetupCapsuleComponent();	
 	SetupMeshComponent();
 	SetupCharacterMovement();
+	GetDefaultGetUpAnimations();
+	GetDefaultRollAnimations();
 	UDataTable* MovementDT =  UBaseHelpersBPLib::GetDefaultDataTable("/ALSV4_CPP/AdvancedLocomotionV4/Data/DataTables/MovementModelTable");
 	MovementModel.DataTable = MovementDT;
 	MovementModel.RowName = FName("Normal");
@@ -117,7 +119,7 @@ void AALSBaseCharacter::OnBreakfall_Implementation()
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
 
 
-	Replicated_PlayMontage(GetRollAnimation(), 1.35);
+	Replicated_PlayMontage(GetRollAnimationDefault(), 1.35);
 }
 
 float AALSBaseCharacter::PlayReplicatedMontage(UAnimMontage* MontageToPlay, const float InPlayRate, const EMontagePlayReturnType ReturnValueType,
@@ -248,6 +250,7 @@ void AALSBaseCharacter::OptimizeCharacterMovement(const FCharacterMovementOptimi
 
 }
 
+
 void AALSBaseCharacter::Tick(float DeltaTime)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::Tick);
@@ -286,6 +289,108 @@ void AALSBaseCharacter::Tick(float DeltaTime)
 	PreviousVelocity = GetVelocity();
 	PreviousAimYaw = AimingRotation.Yaw;
 }
+
+UAnimMontage* AALSBaseCharacter::GetGetUpAnimationDefault(const bool bRagdollFaceUpState) const
+{
+	if(bRagdollFaceUpState)
+	{
+		switch(OverlayState)
+		{
+		case EALSOverlayState::Default:
+		case EALSOverlayState::Masculine:
+		case EALSOverlayState::Feminine:
+			return GetUpBack_Default;
+		case EALSOverlayState::Injured:
+		case EALSOverlayState::Bow:
+		case EALSOverlayState::Torch:
+		case EALSOverlayState::Barrel:
+			return GetUpBack_LH;
+		case EALSOverlayState::HandsTied:
+		case EALSOverlayState::Box:
+			return GetUpBack_2H;
+		case EALSOverlayState::Rifle:
+		case EALSOverlayState::PistolOneHanded:
+		case EALSOverlayState::PistolTwoHanded:
+		case EALSOverlayState::Shotgun:
+		case EALSOverlayState::Sniper:
+		case EALSOverlayState::Launcher:
+		case EALSOverlayState::Sword:
+		case EALSOverlayState::Knife:
+		case EALSOverlayState::Chainsaw:
+		case EALSOverlayState::SwordShield:
+		case EALSOverlayState::Melee:
+		case EALSOverlayState::Binoculars:
+			return GetUpBack_RH;
+		}
+	}
+	else
+	{
+		switch(OverlayState)
+		{
+		case EALSOverlayState::Default:
+		case EALSOverlayState::Masculine:
+		case EALSOverlayState::Feminine:
+			return GetUpFront_Default;
+		case EALSOverlayState::Injured:
+		case EALSOverlayState::Bow:
+		case EALSOverlayState::Torch:
+		case EALSOverlayState::Barrel:
+			return GetUpFront_LH;
+		case EALSOverlayState::HandsTied:
+		case EALSOverlayState::Box:
+			return GetUpFront_2H;
+		case EALSOverlayState::Rifle:
+		case EALSOverlayState::PistolOneHanded:
+		case EALSOverlayState::PistolTwoHanded:
+		case EALSOverlayState::Shotgun:
+		case EALSOverlayState::Sniper:
+		case EALSOverlayState::Launcher:
+		case EALSOverlayState::Sword:
+		case EALSOverlayState::Knife:
+		case EALSOverlayState::Chainsaw:
+		case EALSOverlayState::SwordShield:
+		case EALSOverlayState::Melee:
+		case EALSOverlayState::Binoculars:
+			return GetUpFront_RH;
+		}
+	}
+	return GetUpBack_Default;
+}
+
+
+UAnimMontage* AALSBaseCharacter::GetRollAnimationDefault() const 
+{
+	switch(OverlayState)
+	{
+	case EALSOverlayState::Default:
+	case EALSOverlayState::Masculine:
+	case EALSOverlayState::Feminine:
+	case EALSOverlayState::Melee:
+		return LandRoll_Default;
+	case EALSOverlayState::Injured:
+	case EALSOverlayState::Bow:
+	case EALSOverlayState::Torch:
+	case EALSOverlayState::Barrel:
+		return LandRoll_LH;
+	case EALSOverlayState::HandsTied:
+	case EALSOverlayState::Box:
+		return LandRoll_2H;
+	case EALSOverlayState::Rifle:
+	case EALSOverlayState::PistolOneHanded:
+	case EALSOverlayState::PistolTwoHanded:
+	case EALSOverlayState::Shotgun:
+	case EALSOverlayState::Sniper:
+	case EALSOverlayState::Launcher:
+	case EALSOverlayState::Sword:
+	case EALSOverlayState::Knife:
+	case EALSOverlayState::Chainsaw:
+	case EALSOverlayState::SwordShield:
+	case EALSOverlayState::Binoculars:
+		return LandRoll_RH;
+	}
+	return LandRoll_Default;
+}
+
 
 void AALSBaseCharacter::RagdollStart()
 {
@@ -382,7 +487,7 @@ void AALSBaseCharacter::RagdollEnd()
 		GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 		if (GetMesh()->GetAnimInstance())
 		{
-			GetMesh()->GetAnimInstance()->Montage_Play(GetGetUpAnimation(bRagdollFaceUp), 1.0f, EMontagePlayReturnType::MontageLength, 0.0f, true);
+			GetMesh()->GetAnimInstance()->Montage_Play(GetGetUpAnimationDefault(bRagdollFaceUp), 1.0f, EMontagePlayReturnType::MontageLength, 0.0f, true);
 		}
 	}
 	else
@@ -951,6 +1056,57 @@ bool AALSBaseCharacter::CanSprint() const
 	return false;
 }
 
+bool AALSBaseCharacter::CanDive() const
+{
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::CanDive);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Base_Character);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
+	if(bHasMovementInput == false)
+	{
+		return false;
+	}
+	if(Stance == EALSStance::Crawling)
+	{
+		return false;
+	}
+	const bool bValidInputAmount = MovementInputAmount > 0.9f;
+	return true;
+}
+
+bool AALSBaseCharacter::CanProne() const
+{
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::CanProne);
+	SCOPE_CYCLE_COUNTER(STAT_ALS_Base_Character);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
+	// Grounded, not ragdoll, no conflicting actions. Relax as needed.
+	if (MovementState != EALSMovementState::Grounded) { return false; }
+	if (MovementAction != EALSMovementAction::None) { return false; }
+	return true;
+}
+
+// UPROPERTY(EditDefaultsOnly, Category="ALS|Stance|Prone")
+// float ProneCapsuleHalfHeight = 30.0f;
+//
+// UPROPERTY(EditDefaultsOnly, Category="ALS|Stance|Prone")
+// float ProneMeshZOffset = -92.0f; // usually same as standing; change if your mesh needs extra drop when prone
+//
+// // Optional: block jump in prone.
+// UPROPERTY(EditDefaultsOnly, Category="ALS|Stance|Prone")
+// bool bDisableJumpWhileProne = true;
+
+// void AALSBaseCharacter::EnterProne()
+// {
+// 	float ProneCapsuleHalfHeight = 30.0f;
+// 	if (UCapsuleComponent* Capsule = GetCapsuleComponent())
+// 	{
+// 		Capsule->SetCapsuleHalfHeight(ProneCapsuleHalfHeight, /*bUpdateOverlaps*/ true);
+// 	}
+// }
+//
+// void AALSBaseCharacter::ExitProne()
+// {
+// }
+
 FVector AALSBaseCharacter::GetMovementInput() const
 {
 	return ReplicatedCurrentAcceleration;
@@ -1034,6 +1190,13 @@ void AALSBaseCharacter::SetAimDownSights(const bool bNewAimDownSights)
 
 ECollisionChannel AALSBaseCharacter::GetThirdPersonTraceParams(FVector& TraceOrigin, float& TraceRadius)
 {
+	if(GetMesh() != nullptr)
+	{
+		const FName CameraSocketName = bRightShoulder ? TEXT("TP_CameraTrace_R") : TEXT("TP_CameraTrace_L");
+		TraceOrigin = GetMesh()->GetSocketLocation(CameraSocketName);
+		TraceRadius = 15.0f;
+		return ECC_Camera;
+	}
 	TraceOrigin = GetActorLocation();
 	TraceRadius = 10.0f;
 	return ECC_Visibility;
@@ -1041,6 +1204,12 @@ ECollisionChannel AALSBaseCharacter::GetThirdPersonTraceParams(FVector& TraceOri
 
 FTransform AALSBaseCharacter::GetThirdPersonPivotTarget() const
 {
+	if(GetMesh() != nullptr)
+	{
+		return FTransform(GetActorRotation(),
+					  (GetMesh()->GetSocketLocation(TEXT("Head")) + GetMesh()->GetSocketLocation(TEXT("root"))) / 2.0f,
+					  FVector::OneVector);
+	}
 	return GetActorTransform();
 }
 
@@ -1052,6 +1221,7 @@ FVector AALSBaseCharacter::GetFirstPersonCameraTarget() const
 
 void AALSBaseCharacter::GetCapsuleSize(float& ScaledHalfHeight, float& Radius) const
 {
+
 	if(GetCapsuleComponent() == nullptr){return;}
 	ScaledHalfHeight = GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
 	Radius = GetCapsuleComponent()->GetScaledCapsuleRadius();
@@ -1294,6 +1464,12 @@ void AALSBaseCharacter::OnMovementStateChanged(const EALSMovementState PreviousS
 			// If the character is currently rolling, enable the ragdoll.
 			ReplicatedRagdollStart();
 		}
+		else if (MovementAction == EALSMovementAction::Diving)
+		{
+			// If the character is currently rolling, enable the ragdoll.
+			ReplicatedRagdollStart();
+		}
+
 	}
 
 	if (CameraBehavior)
@@ -1307,7 +1483,6 @@ void AALSBaseCharacter::OnMovementActionChanged(const EALSMovementAction Previou
 	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::OnMovementActionChanged);
 	SCOPE_CYCLE_COUNTER(STAT_ALS_Base_Character);
 	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
-
 	// Make the character crouch if performing a roll.
 	if (MovementAction == EALSMovementAction::Rolling)
 	{
@@ -1325,6 +1500,38 @@ void AALSBaseCharacter::OnMovementActionChanged(const EALSMovementAction Previou
 			Crouch();
 		}
 	}
+	
+	// if(MovementAction == EALSMovementAction::Diving)
+	// {
+	// 	Crouch();
+	// }
+	// if(PreviousAction == EALSMovementAction::Diving)
+	// {
+	// 	if(DesiredStance == EALSStance::Standing)
+	// 	{
+	// 		UnCrouch();
+	// 	}
+	// 	else if (DesiredStance == EALSStance::Crouching)
+	// 	{
+	// 		Crouch();
+	// 	}
+	// }
+
+	// if (MovementAction == EALSMovementAction::Sliding)
+	// {
+	// 	Crouch();
+	// }
+	// if(PreviousAction == EALSMovementAction::Sliding)
+	// {
+	// 	if (DesiredStance == EALSStance::Standing)
+	// 	{
+	// 		UnCrouch();
+	// 	}
+	// 	else if (DesiredStance == EALSStance::Crouching)
+	// 	{
+	// 		Crouch();
+	// 	}
+	// }
 
 	if (CameraBehavior)
 	{
@@ -1943,6 +2150,7 @@ void AALSBaseCharacter::JumpAction(const bool bValue)
 			}
 			else if (MovementState == EALSMovementState::Ragdoll)
 			{
+				if(bFallenOver){return;}
 				RagdollStop();
 			}
 		}
@@ -2014,10 +2222,27 @@ void AALSBaseCharacter::CameraHeldAction()
 void AALSBaseCharacter::StanceAction()
 {
 	// Stance Action: Press "Stance Action" to toggle Standing / Crouching, double tap to Roll.
-
 	if (MovementAction != EALSMovementAction::None)
 	{
 		return;
+	}
+	if(MovementState == EALSMovementState::InAir)
+	{
+		//@ TODO not Right, should be based on Distance to floor,
+		// if(MovementAction == EALSMovementAction::Diving && MovementState == EALSMovementState::InAir)
+		// {
+		LogDebugError("BreakFall from Diving");
+		OnBreakfall();
+		// }
+		const float VelZ = FMath::Abs(GetCharacterMovement()->Velocity.Z);
+		if(bRagdollOnLand && VelZ > RagdollOnLandVelocity)
+		{
+			ReplicatedRagdollStart();
+		}
+		else if(bBreakfallOnLand && bHasMovementInput && VelZ >= BreakfallOnLandVelocity)
+		{
+			OnBreakfall();
+		}
 	}
 
 	UWorld* World = GetWorld();
@@ -2026,23 +2251,17 @@ void AALSBaseCharacter::StanceAction()
 	const float PrevStanceInputTime = LastStanceInputTime;
 	LastStanceInputTime = World->GetTimeSeconds();
 
-	if (LastStanceInputTime - PrevStanceInputTime <= RollDoubleTapTimeout)
+	if(LastStanceInputTime - PrevStanceInputTime <= RollDoubleTapTimeout)
 	{
-		// Roll
-		Replicated_PlayMontage(GetRollAnimation(), 1.15f);
-
-		if (Stance == EALSStance::Standing)
+		if(bDiveInsteadOfRoll)
 		{
-			SetDesiredStance(EALSStance::Crouching);
+			Dive();
+			return;
 		}
-		else if (Stance == EALSStance::Crouching)
-		{
-			SetDesiredStance(EALSStance::Standing);
-		}
+		Roll();
 		return;
 	}
-
-	if (MovementState == EALSMovementState::Grounded)
+	if(MovementState == EALSMovementState::Grounded)
 	{
 		if (Stance == EALSStance::Standing)
 		{
@@ -2058,6 +2277,40 @@ void AALSBaseCharacter::StanceAction()
 
 	// Notice: MovementState == EALSMovementState::InAir case is removed
 }
+
+void AALSBaseCharacter::Roll()
+{
+	// Roll
+	Replicated_PlayMontage(GetRollAnimationDefault(), 1.15f);
+	if (Stance == EALSStance::Standing)
+	{
+		SetDesiredStance(EALSStance::Crouching);
+	}
+	else if (Stance == EALSStance::Crouching)
+	{
+		SetDesiredStance(EALSStance::Standing);
+	}
+}
+
+void AALSBaseCharacter::Dive()
+{
+	if(CanDive() == false){return;}
+	Replicated_PlayMontage(Dive_Default, DiveAnimSpeed);
+	if(Stance == EALSStance::Standing)
+	{
+		SetDesiredStance(EALSStance::Crawling);
+	}
+	else if (Stance == EALSStance::Crawling)
+	{
+		
+	}
+	// GetActorForwardVector()
+	// LaunchCharacter();
+	// Launch
+	// Play Animation
+	// 
+}
+
 
 void AALSBaseCharacter::WalkAction()
 {
@@ -2227,4 +2480,34 @@ void AALSBaseCharacter::SetupCharacterMovement()
 	MyCharacterMovementComponent->BrakingDecelerationFlying = 1000.0f;
 	MyCharacterMovementComponent->NavAgentProps.bCanFly = true;
 
+}
+
+void AALSBaseCharacter::GetDefaultGetUpAnimations()
+{
+	GetUpBack_Default = GetDefaultMontage("/ALSV4_CPP/AdvancedLocomotionV4/CharacterAssets/MannequinSkeleton/AnimationExamples/Actions/ALS_CLF_GetUp_Back_Montage_Default");
+	GetUpBack_2H = GetDefaultMontage("/ALSV4_CPP/AdvancedLocomotionV4/CharacterAssets/MannequinSkeleton/AnimationExamples/Actions/ALS_CLF_GetUp_Back_Montage_2H");
+	GetUpBack_RH = GetDefaultMontage("/ALSV4_CPP/AdvancedLocomotionV4/CharacterAssets/MannequinSkeleton/AnimationExamples/Actions/ALS_CLF_GetUp_Back_Montage_RH");
+	GetUpBack_LH = GetDefaultMontage("/ALSV4_CPP/AdvancedLocomotionV4/CharacterAssets/MannequinSkeleton/AnimationExamples/Actions/ALS_CLF_GetUp_Back_Montage_LH");
+	GetUpFront_2H = GetDefaultMontage("/ALSV4_CPP/AdvancedLocomotionV4/CharacterAssets/MannequinSkeleton/AnimationExamples/Actions/ALS_CLF_GetUp_Front_Montage_2H");
+	GetUpFront_Default = GetDefaultMontage("/ALSV4_CPP/AdvancedLocomotionV4/CharacterAssets/MannequinSkeleton/AnimationExamples/Actions/ALS_CLF_GetUp_Front_Montage_Default");
+	GetUpFront_RH = GetDefaultMontage("/ALSV4_CPP/AdvancedLocomotionV4/CharacterAssets/MannequinSkeleton/AnimationExamples/Actions/ALS_CLF_GetUp_Front_Montage_RH");
+	GetUpFront_LH = GetDefaultMontage("/ALSV4_CPP/AdvancedLocomotionV4/CharacterAssets/MannequinSkeleton/AnimationExamples/Actions/ALS_CLF_GetUp_Front_Montage_LH");
+}
+
+void AALSBaseCharacter::GetDefaultRollAnimations()
+{
+	LandRoll_Default = GetDefaultMontage("/ALSV4_CPP/AdvancedLocomotionV4/CharacterAssets/MannequinSkeleton/AnimationExamples/Actions/ALS_N_LandRoll_F_Montage_Default");
+	LandRoll_RH = GetDefaultMontage("/ALSV4_CPP/AdvancedLocomotionV4/CharacterAssets/MannequinSkeleton/AnimationExamples/Actions/ALS_N_LandRoll_F_Montage_RH");
+	LandRoll_LH = GetDefaultMontage("/ALSV4_CPP/AdvancedLocomotionV4/CharacterAssets/MannequinSkeleton/AnimationExamples/Actions/ALS_N_LandRoll_F_Montage_LH");
+	LandRoll_2H = GetDefaultMontage("/ALSV4_CPP/AdvancedLocomotionV4/CharacterAssets/MannequinSkeleton/AnimationExamples/Actions/ALS_N_LandRoll_F_Montage_2H");
+}
+
+UAnimMontage* AALSBaseCharacter::GetDefaultMontage(const FString& Location)
+{
+	TRACE_CPUPROFILER_EVENT_SCOPE(AALSBaseCharacter::GetDefaultMontage);
+	SCOPE_CYCLE_COUNTER(STATGROUP_ALS_All);
+	const TCHAR* LocationText = *Location;
+	const ConstructorHelpers::FObjectFinder<UAnimMontage> DefaultBPClass(LocationText);
+	if(DefaultBPClass.Object == nullptr){UE_LOG(LogTemp, Error, TEXT("GetDefaultMontage not found at: %s"), *Location);return nullptr;};
+	return DefaultBPClass.Object;
 }

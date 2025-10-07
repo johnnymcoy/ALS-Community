@@ -183,8 +183,8 @@ struct FALSMovementSettings
 	UPROPERTY(EditAnywhere, Category = "Movement Settings")
 	float SprintSpeed = 0.0f;
 
-	UPROPERTY(EditAnywhere, Category = "Movement Settings")
-	float SlideSpeed = 0.0f;
+	// UPROPERTY(EditAnywhere, Category = "Movement Settings")
+	// float SlideSpeed = 0.0f;
 
 	UPROPERTY(EditAnywhere, Category = "Movement Settings")
 	TObjectPtr<UCurveVector> MovementCurve = nullptr;
@@ -202,8 +202,8 @@ struct FALSMovementSettings
 			return SprintSpeed;
 		case EALSGait::Walking:
 			return WalkSpeed;
-		case EALSGait::Sliding:
-			return SlideSpeed;
+		// case EALSGait::Sliding:
+		// 	return SlideSpeed;
 		default:
 			return RunSpeed;
 		}

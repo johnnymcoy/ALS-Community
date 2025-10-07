@@ -11,7 +11,6 @@
 #include "Curves/CurveVector.h"
 #include "Engine/World.h"
 #include "TimerManager.h"
-#include "Animation/AnimInstanceProxy.h"
 #include "Animation/AnimNode_StateMachine.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -1236,6 +1235,16 @@ bool UALSCharacterAnimInstance::GetBowReadyToBowRelaxedSecondRule() const
 	float Weight;
 	const bool bWeight = GetCurrentStateTime(NAME__Machine__Bow_States, Weight) && Weight > 3.0f;
 	return CharacterInformation.bIsMoving && bWeight;
+}
+
+bool UALSCharacterAnimInstance::GetAimingOrFiringWeapon() const
+{
+	return RotationMode.Aiming() || bFiringWeapon;
+}
+
+bool UALSCharacterAnimInstance::GetNotAimingAndFiringWeapon() const
+{
+	return RotationMode.Aiming() == false && bFiringWeapon == false;
 }
 
 

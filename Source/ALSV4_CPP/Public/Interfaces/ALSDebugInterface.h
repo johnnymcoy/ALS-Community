@@ -42,6 +42,10 @@ public:
 	virtual void OverlayMenuCycle(bool bValue) = 0;
 
 	virtual void SetCameraBehavior(UObject* CameraBehaviorRef) = 0;
+
+	UFUNCTION(BlueprintCallable, Category = "ALS|Debug")
+	virtual bool GetShowLayerColors() = 0;
+
 	
 	UFUNCTION(BlueprintCallable, Category = "ALS|Debug")
 	virtual bool GetShowTraces() const = 0;
@@ -49,8 +53,6 @@ public:
 	virtual bool GetDebugView() const = 0;
 	UFUNCTION(BlueprintCallable, Category = "ALS|Debug")
 	virtual bool GetShowDebugShapes() const = 0;
-	UFUNCTION(BlueprintCallable, Category = "ALS|Debug")
-	virtual bool GetShowLayerColors() = 0;
 
 	UFUNCTION(BlueprintCallable, Category = "ALS|Debug")
 	virtual bool GetShowHUD() const = 0;

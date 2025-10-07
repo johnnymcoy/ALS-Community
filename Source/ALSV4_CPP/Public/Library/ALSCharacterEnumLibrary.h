@@ -30,7 +30,7 @@ enum class EALSGait : uint8
 	Walking,
 	Running,
 	Sprinting,
-	Sliding
+	// Sliding
 };
 
 /**
@@ -44,6 +44,9 @@ enum class EALSMovementAction : uint8
 	HighMantle,
 	Rolling,
 	GettingUp,
+	Sliding,
+	Diving,
+
 	// Sliding TODO Add in sliding?
 };
 

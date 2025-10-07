@@ -74,6 +74,9 @@ private:
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = true), Category = "ALS|Character States")
 	bool Crouching_ = false;
 
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = true), Category = "ALS|Character States")
+	bool Crawling_ = false;
+
 public:
 	FALSStance()
 	{
@@ -83,6 +86,7 @@ public:
 
 	const bool& Standing() const { return Standing_; }
 	const bool& Crouching() const { return Crouching_; }
+	const bool& Crawling() const { return Crawling_; }
 
 	operator EALSStance() const { return Stance; }
 
@@ -91,6 +95,7 @@ public:
 		Stance = NewStance;
 		Standing_ = Stance == EALSStance::Standing;
 		Crouching_ = Stance == EALSStance::Crouching;
+		Crawling_ = Stance == EALSStance::Crawling;
 	}
 };
 
@@ -206,6 +211,13 @@ private:
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = true), Category = "ALS|Movement System")
 	bool GettingUp_ = false;
 
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = true), Category = "ALS|Movement System")
+	bool Sliding_ = false;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = true), Category = "ALS|Movement System")
+	bool Diving_ = false;
+
+
 public:
 	FALSMovementAction()
 	{
@@ -218,6 +230,8 @@ public:
 	const bool& HighMantle() const { return HighMantle_; }
 	const bool& Rolling() const { return Rolling_; }
 	const bool& GettingUp() const { return GettingUp_; }
+	const bool& Sliding() const { return Sliding_; }
+	const bool& Diving() const { return Diving_; }
 
 	operator EALSMovementAction() const { return Action; }
 
@@ -229,6 +243,8 @@ public:
 		HighMantle_ = Action == EALSMovementAction::HighMantle;
 		Rolling_ = Action == EALSMovementAction::Rolling;
 		GettingUp_ = Action == EALSMovementAction::GettingUp;
+		Sliding_ = Action == EALSMovementAction::Sliding;
+		Diving_ = Action == EALSMovementAction::Diving;
 	}
 };
 
@@ -263,7 +279,7 @@ public:
 	const bool& Walking() const { return Walking_; }
 	const bool& Running() const { return Running_; }
 	const bool& Sprinting() const { return Sprinting_; }
-	const bool& Sliding() const { return Sliding_; }
+	// const bool& Sliding() const { return Sliding_; }
 
 	operator EALSGait() const { return Gait; }
 
@@ -273,7 +289,7 @@ public:
 		Walking_ = Gait == EALSGait::Walking;
 		Running_ = Gait == EALSGait::Running;
 		Sprinting_ = Gait == EALSGait::Sprinting;
-		Sliding_ = Gait == EALSGait::Sliding;
+		// Sliding_ = Gait == EALSGait::Sliding;
 
 	}
 };

@@ -101,25 +101,7 @@ void AALSCharacter::RagdollEnd()
 	UpdateHeldObject();
 }
 
-ECollisionChannel AALSCharacter::GetThirdPersonTraceParams(FVector& TraceOrigin, float& TraceRadius)
-{
-	const FName CameraSocketName = bRightShoulder ? TEXT("TP_CameraTrace_R") : TEXT("TP_CameraTrace_L");
-	TraceOrigin = GetMesh()->GetSocketLocation(CameraSocketName);
-	TraceRadius = 15.0f;
-	return ECC_Camera;
-}
 
-FTransform AALSCharacter::GetThirdPersonPivotTarget() const
-{
-	return FTransform(GetActorRotation(),
-	                  (GetMesh()->GetSocketLocation(TEXT("Head")) + GetMesh()->GetSocketLocation(TEXT("root"))) / 2.0f,
-	                  FVector::OneVector);
-}
-
-FVector AALSCharacter::GetFirstPersonCameraTarget() const
-{
-	return GetMesh()->GetSocketLocation(TEXT("FP_Camera"));
-}
 
 void AALSCharacter::OnOverlayStateChanged(EALSOverlayState PreviousState)
 {

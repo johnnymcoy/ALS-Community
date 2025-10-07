@@ -14,6 +14,10 @@ class IALSCharacterInterface;
 class AALSBaseCharacter;
 class USkeletalMesh;
 
+
+//@TODO Remove All Blueprint Derived stuff, Connect with Widget, Add Functions:
+//@ toggle Mesh Visible
+//@  
 UCLASS(Blueprintable, BlueprintType)
 class ALSV4_CPP_API UALSDebugComponent : public UActorComponent, public IALSDebugInterface
 {
@@ -153,6 +157,9 @@ public:
 	bool bShowHud = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ALS|Debug")
+	bool bCreateDebugHUD = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ALS|Debug")
 	bool bShowCharacterInfo = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ALS|Debug")
@@ -166,6 +173,8 @@ public:
 protected:
 	UPROPERTY(BlueprintReadOnly, Category = "ALS|Debug")
 	bool bOverlayMenuOpen = false;
+
+	class IALSDebugHUD* GetDebugHUD() const;
 
 	UPROPERTY(BlueprintReadOnly, Category = "ALS|Debug|Widget")
 	UUserWidget* ALSHUD = nullptr;

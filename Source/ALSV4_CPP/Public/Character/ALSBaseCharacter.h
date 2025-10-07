@@ -117,6 +117,8 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent, Category = "ALS|Ragdoll System")
 	UAnimMontage* GetGetUpAnimation(bool bRagdollFaceUpState);
 
+	UAnimMontage* GetGetUpAnimationDefault(const bool bRagdollFaceUpState) const;
+
 	UFUNCTION(BlueprintCallable, Category = "ALS|Ragdoll System")
 	virtual void RagdollStart();
 
@@ -285,6 +287,21 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "ALS|Movement System")
 	virtual bool CanSprint() const;
 
+	UFUNCTION(BlueprintCallable, Category = "ALS|Movement System")
+	virtual bool CanDive() const;
+
+	UFUNCTION(BlueprintCallable, Category = "ALS|Movement System")
+	virtual bool CanProne() const;
+
+	// Internal transitions
+	// void EnterProne();
+	// void ExitProne();
+
+
+	virtual void Roll();
+	virtual void Dive();
+
+
 	/** BP implementable function that called when Breakfall starts */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "ALS|Movement System")
 	void OnBreakfall();
@@ -304,6 +321,10 @@ public:
 	/** Implement on BP to get required roll animation according to character's state */
 	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent, Category = "ALS|Movement System")
 	UAnimMontage* GetRollAnimation();
+
+	UAnimMontage* GetRollAnimationDefault() const;
+
+
 
 	/** Utility */
 
@@ -397,6 +418,7 @@ protected:
 	virtual void OptimizeCharacterMovement(const FCharacterMovementOptimizationSettings& MovementSettings) override;
 
 
+
 	/** State Changes */
 
 	virtual void OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode = 0) override;
@@ -486,7 +508,8 @@ protected:
 
 	UPROPERTY(Category = "ALS|Input", BlueprintReadOnly)
 	bool bSprintHeld = false;
-	
+
+
 	/** Camera System */
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "ALS|Camera System")
@@ -510,7 +533,10 @@ protected:
 	bool bSetEssentialValues = true;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "ALS|Debug|Anim")
 	bool bUpdateGroundedRotation = true;
-	
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "ALS|Debug|Anim")
+	bool bDiveInsteadOfRoll = true;
+
 	
 	void HandleNonMovingRotation(float DeltaTime);
 
@@ -695,10 +721,38 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ALS|Camera")
 	bool bForceEnableNetworkOptimizationsOff = false;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="ALS|Dive")
+	float DiveAnimSpeed = 0.5f;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="ALS|Animations")
+	UAnimMontage* Dive_Default;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="ALS|Animations")
+	UAnimMontage* GetUpFront_Default;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="ALS|Animations")
+	UAnimMontage* GetUpFront_LH;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="ALS|Animations")
+	UAnimMontage* GetUpFront_2H;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="ALS|Animations")
+	UAnimMontage* GetUpFront_RH;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="ALS|Animations")
+	UAnimMontage* GetUpBack_Default;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="ALS|Animations")
+	UAnimMontage* GetUpBack_LH;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="ALS|Animations")
+	UAnimMontage* GetUpBack_2H;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="ALS|Animations")
+	UAnimMontage* GetUpBack_RH;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="ALS|Animations")
+	UAnimMontage* LandRoll_Default;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="ALS|Animations")
+	UAnimMontage* LandRoll_RH;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="ALS|Animations")
+	UAnimMontage* LandRoll_LH;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="ALS|Animations")
+	UAnimMontage* LandRoll_2H;
 private:
-	// UPROPERTY()
-	// TObjectPtr<UALSDebugComponent> ALSDebugComponent = nullptr;
+
+
 	
 	IALSCameraInterface* GetALSCamera();
 	IALSDebugInterface* GetALSDebugInterface();
@@ -710,5 +764,11 @@ private:
 	void SetupCapsuleComponent() const;
 	void SetupMeshComponent() const;
 	void SetupCharacterMovement();
+	void GetDefaultGetUpAnimations();
+	void GetDefaultRollAnimations();
+
+	static UAnimMontage* GetDefaultMontage(const FString& Location);
+
+
 
 };

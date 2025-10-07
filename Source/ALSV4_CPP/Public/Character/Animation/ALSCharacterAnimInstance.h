@@ -211,6 +211,10 @@ protected:
 	bool GetBowReadyToBowRelaxedRule() const;
 	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
 	bool GetBowReadyToBowRelaxedSecondRule() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetAimingOrFiringWeapon() const;
+	UFUNCTION(BlueprintCallable, Category="ALS|Rules")
+	bool GetNotAimingAndFiringWeapon() const;
 
 	UFUNCTION(BlueprintCallable, Category="ALS|Rules", meta = (BlueprintThreadSafe))
 	float GetAirFallSpeedABS() const;
